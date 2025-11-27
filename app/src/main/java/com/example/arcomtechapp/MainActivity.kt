@@ -1,27 +1,38 @@
-package com.example.bluefoldertech
+package com.example.arcomtechapp
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.TextView
-import com.chaquo.python.Python
-import com.chaquo.python.android.AndroidPlatform
+import androidx.fragment.app.Fragment
+import com.example.arcomtechapp.databinding.ActivityMainBinding
+import com.example.arcomtechapp.ui.*
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var binding: ActivityMainBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
 
-        // Start Python if not started
-        if (! Python.isStarted()) {
-            Python.start(AndroidPlatform(this))
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        // Default screen
+        replaceFragment(HomeFragment())
+
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_home -> replaceFragment(HomeFragment())
+                R.id.nav_today -> replaceFragment(TodayFragment())
+                R.id.nav_jobs -> replaceFragment(JobsFragment())
+                R.id.nav_settings -> replaceFragment(SettingsFragment())
+            }
+            true
         }
+    }
 
-        val py = Python.getInstance()
-        val module = py.getModule("testmodule")
-        val result = module.callAttr("hello_world").toString()
-
-        val text = findViewById<TextView>(R.id.text_view)
-        text.text = result
+    private fun replaceFragment(fragment: Fragment) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .commit()
     }
 }

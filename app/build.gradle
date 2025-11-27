@@ -5,25 +5,28 @@ plugins {
 }
 
 android {
-    namespace "com.example.bluefoldertech"
+    namespace "com.example.arcomtechapp"
     compileSdk 35
 
     defaultConfig {
-        applicationId "com.example.bluefoldertech"
+        applicationId "com.example.arcomtechapp"
         minSdk 24
         targetSdk 35
         versionCode 1
         versionName "1.0"
 
-        ndk {
-            abiFilters "armeabi-v7a", "arm64-v8a", "x86_64"
-        }
-
+        // Chaquopy / Python config
         python {
-            buildPython "python3"
+            version "3.10"
+            buildPython "python3.10"
             pip {
                 install "requests"
             }
+        }
+
+        // Required by Chaquopy
+        ndk {
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86_64"
         }
     }
 
@@ -33,10 +36,22 @@ android {
         }
     }
 
-    packaging {
+    // Legacy packaging needed for Chaquopy
+    packagingOptions {
         jniLibs {
             useLegacyPackaging true
         }
+    }
+
+    // Make Java use 1.8 bytecode
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    // Make Kotlin match Java: 1.8
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 }
 
