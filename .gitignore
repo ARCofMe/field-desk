@@ -1,0 +1,34 @@
+### Android / Kotlin / Java ###
+# Built application files
+*.apk
+*.ap_
+*.aab
+
+# ART/Dalvik VM files
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+
+# Gradle files
+.gradle/
+build/
+*/build/
+!**/src/**/build/
+
+# Local configuration
+local.properties
+*.local
+*.keystore
+*.jks
+*.pem
+
+# Proguard
+proguard/
+*.*
+
