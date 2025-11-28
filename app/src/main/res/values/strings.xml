@@ -1,3 +1,7 @@
 <resources>
-    <string name="app_name">ARCoMTechApp</string>
+    <string name="app_name">ARCoM Tech App</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="settings_title">Settings</string>
+    <string name="no_jobs_available">No jobs scheduled.</string>
 </resources>

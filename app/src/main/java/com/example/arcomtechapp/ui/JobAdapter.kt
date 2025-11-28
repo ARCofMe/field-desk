@@ -1,0 +1,54 @@
+package com.example.arcomtechapp.ui
+
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.core.view.isVisible
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.RecyclerView
+import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.databinding.ItemJobBinding
+
+class JobAdapter(
+    private val onJobClicked: (Job) -> Unit
+) : ListAdapter<Job, JobAdapter.JobViewHolder>(DIFF) {
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): JobViewHolder {
+        val binding = ItemJobBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return JobViewHolder(binding, onJobClicked)
+    }
+
+    override fun onBindViewHolder(holder: JobViewHolder, position: Int) {
+        holder.bind(getItem(position))
+    }
+
+    class JobViewHolder(
+        private val binding: ItemJobBinding,
+        private val onClick: (Job) -> Unit
+    ) : RecyclerView.ViewHolder(binding.root) {
+
+        fun bind(job: Job) {
+            binding.textJobTitle.text = "${job.customerName} • ${job.status}"
+            binding.textJobAddress.text = job.address
+            binding.textJobWindow.text = job.appointmentWindow
+            binding.textJobPhone.text = job.customerPhone
+
+            val distance = job.distanceMiles
+            if (distance != null) {
+                binding.textJobDistance.isVisible = true
+                binding.textJobDistance.text = String.format("%.1f mi away", distance)
+            } else {
+                binding.textJobDistance.isVisible = false
+            }
+
+            binding.root.setOnClickListener { onClick(job) }
+        }
+    }
+
+    private companion object {
+        val DIFF = object : DiffUtil.ItemCallback<Job>() {
+            override fun areItemsTheSame(oldItem: Job, newItem: Job): Boolean = oldItem.id == newItem.id
+            override fun areContentsTheSame(oldItem: Job, newItem: Job): Boolean = oldItem == newItem
+        }
+    }
+}
