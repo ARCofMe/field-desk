@@ -1,24 +1,29 @@
 package com.example.arcomtechapp.ui
 
-import android.os.Bundle
 import android.app.DatePickerDialog
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.util.Log
 import androidx.fragment.app.viewModels
+import androidx.core.app.ActivityCompat
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.databinding.FragmentJobsBinding
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.viewmodel.JobsViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import android.content.Intent
-import android.net.Uri
-import android.util.Log
-import android.widget.ArrayAdapter
-import androidx.fragment.app.Fragment
-import androidx.recyclerview.widget.LinearLayoutManager
 import java.util.Locale
+import android.widget.ArrayAdapter
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.tasks.Tasks
+import android.os.Bundle
 
 class JobsFragment : Fragment() {
 
@@ -31,6 +36,8 @@ class JobsFragment : Fragment() {
     private var endDate: LocalDate = LocalDate.now()
     private val bfFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
     private var dateRangeType: String = "scheduled"
+    private val locationPermission = Manifest.permission.ACCESS_FINE_LOCATION
+    private val locationRequestCode = 1001
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentJobsBinding.inflate(inflater, container, false)
@@ -123,17 +130,19 @@ class JobsFragment : Fragment() {
         val uniqueJobs = unique.values.toList()
 
         Log.d("JobsFragment", "Routing stops: ${uniqueJobs.map { it.address }}")
-        val url = buildGoogleRouteUrl(uniqueJobs)
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        requestLocationAndRoute(uniqueJobs)
     }
 
-    private fun buildGoogleRouteUrl(jobs: List<com.example.arcomtechapp.data.models.Job>): String {
+    private fun buildGoogleRouteUrl(originLat: Double, originLng: Double, jobs: List<com.example.arcomtechapp.data.models.Job>): String {
         val encodedStops = jobs.map { Uri.encode(it.address) }
-        val origin = "Current+Location"
-        val destination = encodedStops.last()
+        if (encodedStops.isEmpty()) return ""
+
+        val origin = "${originLat},${originLng}"
+        val destination = origin // loop back to current position
         val waypoints = if (encodedStops.size > 1) {
-            "optimize:true|" + encodedStops.dropLast(1).joinToString("|")
-        } else ""
+            "optimize:true|" + encodedStops.joinToString("|")
+        } else encodedStops.first()
+
         return buildString {
             append("https://www.google.com/maps/dir/?api=1")
             append("&origin=$origin")
@@ -166,6 +175,46 @@ class JobsFragment : Fragment() {
             current.dayOfMonth
         )
         dialog.show()
+    }
+
+    private fun requestLocationAndRoute(jobs: List<com.example.arcomtechapp.data.models.Job>) {
+        if (ActivityCompat.checkSelfPermission(requireContext(), locationPermission) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(locationPermission), locationRequestCode)
+            return
+        }
+        val fused = LocationServices.getFusedLocationProviderClient(requireContext())
+        fused.lastLocation.addOnSuccessListener { loc ->
+            val lat = loc?.latitude
+            val lng = loc?.longitude
+            if (lat != null && lng != null) {
+                val url = buildGoogleRouteUrl(lat, lng, jobs)
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            } else {
+                binding.textJobsState.visibility = View.VISIBLE
+                binding.textJobsState.text = "Location unavailable"
+            }
+        }.addOnFailureListener {
+            binding.textJobsState.visibility = View.VISIBLE
+            binding.textJobsState.text = "Unable to get location"
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == locationRequestCode) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Retry with whatever jobs are currently loaded
+                val jobs = viewModel.jobs.value.orEmpty().filter {
+                    it.address.isNotBlank() && !it.address.equals("Address not provided", ignoreCase = true)
+                }
+                if (jobs.isNotEmpty()) {
+                    requestLocationAndRoute(jobs)
+                }
+            } else {
+                binding.textJobsState.visibility = View.VISIBLE
+                binding.textJobsState.text = "Location permission denied"
+            }
+        }
     }
 
     private fun updateDateLabels() {

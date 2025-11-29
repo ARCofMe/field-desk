@@ -6,6 +6,7 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.databinding.ItemJobBinding
 
@@ -28,6 +29,10 @@ class JobAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(job: Job) {
+            // Subtle background tint based on equipment type
+            val bgRes = backgroundForEquipment(job.equipment)
+            binding.root.setBackgroundResource(bgRes)
+
             binding.textJobTitle.text = job.customerName
             binding.textJobAddress.text = job.address
             binding.textJobWindow.text = job.appointmentWindow
@@ -48,6 +53,19 @@ class JobAdapter(
             }
 
             binding.root.setOnClickListener { onClick(job) }
+        }
+
+        private fun backgroundForEquipment(equipment: String?): Int {
+            if (equipment.isNullOrBlank()) return R.drawable.bg_job_default
+            val code = equipment.uppercase()
+            return when {
+                code.startsWith("WM") -> R.drawable.bg_job_wm   // washer
+                code.startsWith("RF") -> R.drawable.bg_job_rf   // refrigerator
+                code.startsWith("DW") -> R.drawable.bg_job_dw   // dishwasher
+                code.startsWith("DR") -> R.drawable.bg_job_dr   // dryer
+                code.startsWith("OV") || code.startsWith("ST") -> R.drawable.bg_job_ov // oven/stove
+                else -> R.drawable.bg_job_default
+            }
         }
     }
 

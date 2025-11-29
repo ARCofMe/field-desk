@@ -189,6 +189,10 @@ def _parse_assignment_jobs(xml_text: str) -> List[Dict]:
         raw_complete = _get_text_suffix(assignment, ["isComplete", "complete"])
         is_complete = str(raw_complete).strip().lower() in ("true", "1", "yes", "y")
 
+        equipment = (
+            _get_text_suffix(assignment, ["equipment", "Equipment", "asset", "Asset", "equipmentToService", "equipmentId"])
+        )
+
         jobs.append(
             {
                 "id": sr_id or (_get_text_suffix(assignment, ["assignmentId", "AssignmentId"]) or ""),
@@ -200,7 +204,7 @@ def _parse_assignment_jobs(xml_text: str) -> List[Dict]:
                 "customerName": _get_text_suffix(assignment, ["assignmentComment", "comment", "subject"]) or f"Service Request {sr_id or ''}".strip(),
                 "customerPhone": _get_text_suffix(assignment, ["phone", "customerPhone"]) or "",
                 "status": "Completed" if is_complete else "Pending",
-                "equipment": _get_text_suffix(assignment, ["equipment", "Equipment", "asset", "Asset"]),
+                "equipment": equipment,
                 "distanceMiles": None,
             }
         )
@@ -273,10 +277,7 @@ def _fetch_service_request(base_url: str, api_key: str, account: str, sr_id: str
         start = _normalize_dt(_get_text_suffix(sr, ["ScheduledStartDateTime", "StartDate", "DateScheduled"]) or "")
         end = _normalize_dt(_get_text_suffix(sr, ["ScheduledEndDateTime", "EndDate"]) or "")
         window = _format_window(start, end)
-        equipment = (
-            _get_text_suffix(sr, ["equipment", "Equipment", "asset", "Asset", "name", "description"])
-            or ""
-        )
+        equipment = _extract_equipment(sr)
         return {
             "address": address,
             "customerName": customer or subj or f"Service Request {sr_id}",
@@ -439,6 +440,29 @@ def _extract_customer_location_only(sr_node: ElementTree.Element) -> str:
     postal = _get_text_suffix(sr_node, ["customerLocationPostalCode"])
     parts = [p for p in [street, city, state, postal] if p]
     return ", ".join(parts)
+
+
+def _extract_equipment(sr_node: ElementTree.Element) -> str:
+    """
+    Attempt to extract equipment name/model/code from serviceRequest payload.
+    """
+    for tags in [
+        ["equipmentName", "EquipmentName"],
+        ["equipment", "Equipment"],
+        ["equipmentModel", "EquipmentModel"],
+        ["equipmentToService", "equipmentId"],
+    ]:
+        val = _get_text_suffix(sr_node, tags)
+        if val:
+            return val
+
+    # Try customFields if equipment stored there
+    cf = sr_node.find(".//customFields")
+    if cf is not None:
+        for child in cf.iter():
+            if child.text and child.text.strip():
+                return child.text.strip()
+    return ""
 
 
 def _fetch_customer_location(base_url: str, api_key: str, account: str, customer_id: str | int, location_id: str | int) -> str | None:
