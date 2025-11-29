@@ -3,6 +3,7 @@ from typing import List, Dict, Tuple
 from xml.etree import ElementTree
 from datetime import date
 import xml.etree.ElementTree as ET
+import re
 
 import requests
 from urllib.parse import urlparse
@@ -176,6 +177,10 @@ def _parse_assignment_jobs(xml_text: str) -> List[Dict]:
         window = _format_window(start, end)
         customer_id = _get_text_suffix(assignment, ["customerId", "CustomerId", "customer"])
         location_id = _get_text_suffix(assignment, ["customerLocationId", "CustomerLocationId", "locationId", "LocationId"])
+        equipment = (
+            _get_text_suffix(assignment, ["equipment", "Equipment", "asset", "Asset", "equipmentToService", "equipmentId"])
+        )
+        equipment = _normalize_equipment(equipment)
 
         # Location fields may vary; try nested address parts first, then any location text
         address = (
@@ -242,8 +247,15 @@ def _hydrate_jobs_from_service_requests(base_url: str, api_key: str, account: st
             job["address"] = "Address not provided"
         job["customerName"] = details.get("customerName") or job.get("customerName")
         job["appointmentWindow"] = details.get("window") or job.get("appointmentWindow")
-        if details.get("equipment"):
-            job["equipment"] = details["equipment"]
+
+        eq = details.get("equipment") or job.get("equipment")
+        eq = _normalize_equipment(eq)
+        if eq:
+            job["equipment"] = eq
+
+        phone = details.get("phone") or job.get("customerPhone")
+        if phone:
+            job["customerPhone"] = phone
     return jobs
 
 
@@ -278,11 +290,13 @@ def _fetch_service_request(base_url: str, api_key: str, account: str, sr_id: str
         end = _normalize_dt(_get_text_suffix(sr, ["ScheduledEndDateTime", "EndDate"]) or "")
         window = _format_window(start, end)
         equipment = _extract_equipment(sr)
+        phone = _extract_phone(sr)
         return {
             "address": address,
             "customerName": customer or subj or f"Service Request {sr_id}",
             "window": window,
             "equipment": equipment,
+            "phone": phone,
             "customerId": _get_text_suffix(sr, ["customerId", "CustomerId", "customer"]),
             "customerLocationId": _get_text_suffix(sr, ["customerLocationId", "CustomerLocationId", "locationId", "LocationId"]),
         }
@@ -463,6 +477,49 @@ def _extract_equipment(sr_node: ElementTree.Element) -> str:
             if child.text and child.text.strip():
                 return child.text.strip()
     return ""
+
+
+def _extract_phone(sr_node: ElementTree.Element) -> str:
+    """Extract a customer phone from common SR fields."""
+    return _get_text_suffix(
+        sr_node,
+        [
+            "customerContactPhoneMobile",
+            "customerContactPhone",
+            "customerPhone",
+            "phone",
+        ],
+    )
+
+
+def _looks_like_uuid(val: str) -> bool:
+    if not val:
+        return False
+    return bool(
+        re.fullmatch(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", val)
+        or re.fullmatch(r"[0-9a-fA-F]{32}", val)
+    )
+
+
+def _normalize_equipment(eq: str | None) -> str:
+    """Map raw equipment codes/ids to friendlier labels; drop UUID-like strings."""
+    if not eq:
+        return ""
+    val = eq.strip()
+    if _looks_like_uuid(val):
+        return ""
+    up = val.upper()
+    if up.startswith("WM") or "WASH" in up:
+        return "Washer"
+    if up.startswith("DR") or "DRY" in up:
+        return "Dryer"
+    if up.startswith("DW") or "DISH" in up:
+        return "Dishwasher"
+    if up.startswith("RF") or "FRID" in up or "REFR" in up:
+        return "Refrigerator"
+    if up.startswith("OV") or up.startswith("ST") or "OVEN" in up or "RANGE" in up or "STOVE" in up:
+        return "Oven/Range"
+    return val
 
 
 def _fetch_customer_location(base_url: str, api_key: str, account: str, customer_id: str | int, location_id: str | int) -> str | None:

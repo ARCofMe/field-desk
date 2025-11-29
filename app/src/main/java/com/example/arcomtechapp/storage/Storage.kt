@@ -19,7 +19,9 @@ class Storage(context: Context) {
         val debugMode: Boolean,
         val lastSyncEpochMillis: Long,
         val notesDraft: String?,
-        val themeMode: Int
+        val themeMode: Int,
+        val routeOrigin: String?,
+        val routeDestination: String?
     )
 
     fun saveApiKey(key: String?) {
@@ -90,6 +92,22 @@ class Storage(context: Context) {
 
     fun getThemeMode(): Int = prefs.getInt(KEY_THEME_MODE, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
 
+    fun saveRouteOrigin(origin: String?) {
+        prefs.edit().apply {
+            if (origin.isNullOrBlank()) remove(KEY_ROUTE_ORIGIN) else putString(KEY_ROUTE_ORIGIN, origin)
+        }.apply()
+    }
+
+    fun getRouteOrigin(): String? = prefs.getString(KEY_ROUTE_ORIGIN, null)
+
+    fun saveRouteDestination(dest: String?) {
+        prefs.edit().apply {
+            if (dest.isNullOrBlank()) remove(KEY_ROUTE_DESTINATION) else putString(KEY_ROUTE_DESTINATION, dest)
+        }.apply()
+    }
+
+    fun getRouteDestination(): String? = prefs.getString(KEY_ROUTE_DESTINATION, null)
+
     fun getSnapshot(): SettingsSnapshot = SettingsSnapshot(
         apiKey = getApiKey(),
         baseUrl = getBaseUrl(),
@@ -100,7 +118,9 @@ class Storage(context: Context) {
         debugMode = isDebugMode(),
         lastSyncEpochMillis = lastSyncTime(),
         notesDraft = getNotesDraft(),
-        themeMode = getThemeMode()
+        themeMode = getThemeMode(),
+        routeOrigin = getRouteOrigin(),
+        routeDestination = getRouteDestination()
     )
 
     fun clearAll() {
@@ -118,5 +138,7 @@ class Storage(context: Context) {
         const val KEY_LAST_SYNC = "last_sync"
         const val KEY_NOTES_DRAFT = "notes_draft"
         const val KEY_THEME_MODE = "theme_mode"
+        const val KEY_ROUTE_ORIGIN = "route_origin"
+        const val KEY_ROUTE_DESTINATION = "route_destination"
     }
 }

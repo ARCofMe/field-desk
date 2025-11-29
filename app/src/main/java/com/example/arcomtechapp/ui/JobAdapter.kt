@@ -33,16 +33,17 @@ class JobAdapter(
             val bgRes = backgroundForEquipment(job.equipment)
             binding.root.setBackgroundResource(bgRes)
 
-            binding.textJobTitle.text = job.customerName
+            val equipmentLabel = friendlyEquipment(job.equipment)
+            val titleParts = mutableListOf<String>()
+            titleParts += "#${job.id}"
+            if (equipmentLabel.isNotBlank()) titleParts += equipmentLabel
+            if (job.customerName.isNotBlank()) titleParts += job.customerName
+            binding.textJobTitle.text = titleParts.joinToString(" - ")
             binding.textJobAddress.text = job.address
             binding.textJobWindow.text = job.appointmentWindow
             binding.textJobPhone.text = job.customerPhone
 
-            val equipment = job.equipment
-            binding.textJobEquipment.isVisible = !equipment.isNullOrBlank()
-            if (!equipment.isNullOrBlank()) {
-                binding.textJobEquipment.text = equipment
-            }
+            binding.textJobEquipment.isVisible = false
 
             val distance = job.distanceMiles
             if (distance != null) {
@@ -65,6 +66,19 @@ class JobAdapter(
                 code.startsWith("DR") -> R.drawable.bg_job_dr   // dryer
                 code.startsWith("OV") || code.startsWith("ST") -> R.drawable.bg_job_ov // oven/stove
                 else -> R.drawable.bg_job_default
+            }
+        }
+
+        private fun friendlyEquipment(equipment: String?): String {
+            if (equipment.isNullOrBlank()) return ""
+            val code = equipment.uppercase()
+            return when {
+                code.contains("WASH") || code.startsWith("WM") -> "Washer"
+                code.contains("DRY") || code.startsWith("DR") -> "Dryer"
+                code.contains("DISH") || code.startsWith("DW") -> "Dishwasher"
+                code.contains("FRID") || code.contains("REFR") || code.startsWith("RF") -> "Refrigerator"
+                code.contains("OVEN") || code.contains("RANGE") || code.contains("STOVE") || code.startsWith("OV") || code.startsWith("ST") -> "Oven/Range"
+                else -> equipment
             }
         }
     }

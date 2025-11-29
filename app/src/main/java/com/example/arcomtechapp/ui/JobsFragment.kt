@@ -22,8 +22,12 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import android.widget.ArrayAdapter
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.tasks.Tasks
 import android.os.Bundle
+import android.location.Geocoder
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 class JobsFragment : Fragment() {
 
@@ -135,13 +139,15 @@ class JobsFragment : Fragment() {
 
     private fun buildGoogleRouteUrl(originLat: Double, originLng: Double, jobs: List<com.example.arcomtechapp.data.models.Job>): String {
         val encodedStops = jobs.map { Uri.encode(it.address) }
+            .filter { it.isNotBlank() && !it.lowercase(Locale.getDefault()).startsWith("optimize") }
         if (encodedStops.isEmpty()) return ""
 
-        val origin = "${originLat},${originLng}"
-        val destination = origin // loop back to current position
-        val waypoints = if (encodedStops.size > 1) {
-            "optimize:true|" + encodedStops.joinToString("|")
-        } else encodedStops.first()
+        val storedOrigin = storage.getRouteOrigin()
+        val storedDestination = storage.getRouteDestination()
+
+        val origin = storedOrigin?.takeIf { it.isNotBlank() }?.let { Uri.encode(it) } ?: "${originLat},${originLng}"
+        val destination = storedDestination?.takeIf { it.isNotBlank() }?.let { Uri.encode(it) } ?: origin // loop back to current position
+        val waypoints = encodedStops.joinToString("|")
 
         return buildString {
             append("https://www.google.com/maps/dir/?api=1")
@@ -187,7 +193,8 @@ class JobsFragment : Fragment() {
             val lat = loc?.latitude
             val lng = loc?.longitude
             if (lat != null && lng != null) {
-                val url = buildGoogleRouteUrl(lat, lng, jobs)
+                val ordered = orderStops(lat, lng, jobs)
+                val url = buildGoogleRouteUrl(lat, lng, ordered)
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
             } else {
                 binding.textJobsState.visibility = View.VISIBLE
@@ -216,6 +223,28 @@ class JobsFragment : Fragment() {
             }
         }
     }
+
+    private fun orderStops(originLat: Double, originLng: Double, jobs: List<com.example.arcomtechapp.data.models.Job>): List<com.example.arcomtechapp.data.models.Job> {
+        // Order by service window buckets (AM -> PM -> other), preserving original order within each bucket.
+        val withBucket = jobs.mapIndexed { idx, job ->
+            Triple(job, idx, windowBucket(job.appointmentWindow))
+        }
+        return withBucket.sortedWith(
+            compareBy<Triple<com.example.arcomtechapp.data.models.Job, Int, Int>> { it.third }
+                .thenBy { it.second }
+        ).map { it.first }
+    }
+
+    private fun windowBucket(window: String?): Int {
+        if (window.isNullOrBlank()) return 2
+        val win = window.lowercase(Locale.getDefault())
+        return when {
+            "am" in win -> 0
+            "pm" in win -> 1
+            else -> 2
+        }
+    }
+
 
     private fun updateDateLabels() {
         binding.textStartDate.text = "Start: ${startDate.format(bfFormatter)}"
