@@ -5,7 +5,6 @@ import android.app.DatePickerDialog
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.databinding.FragmentJobsBinding
@@ -13,6 +12,13 @@ import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.viewmodel.JobsViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import android.content.Intent
+import android.net.Uri
+import android.util.Log
+import android.widget.ArrayAdapter
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import java.util.Locale
 
 class JobsFragment : Fragment() {
 
@@ -24,6 +30,7 @@ class JobsFragment : Fragment() {
     private var startDate: LocalDate = LocalDate.now()
     private var endDate: LocalDate = LocalDate.now()
     private val bfFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
+    private var dateRangeType: String = "scheduled"
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentJobsBinding.inflate(inflater, container, false)
@@ -40,12 +47,15 @@ class JobsFragment : Fragment() {
                 .commit()
         }
         binding.recyclerJobs.adapter = adapter
+        binding.recyclerJobs.layoutManager = LinearLayoutManager(requireContext())
 
         binding.buttonRefreshJobs.setOnClickListener { loadJobs() }
         binding.buttonStartDate.setOnClickListener { pickDate(true) }
         binding.buttonEndDate.setOnClickListener { pickDate(false) }
         binding.textJobsHeader.text = buildHeaderText()
         updateDateLabels()
+        setupRangeTypeSpinner()
+        binding.buttonOptimizeJobsRoute.setOnClickListener { launchOptimizedRoute() }
 
         observeViewModel()
         loadJobs()
@@ -75,18 +85,64 @@ class JobsFragment : Fragment() {
 
         viewModel.error.observe(viewLifecycleOwner) { error ->
             binding.textJobsState.visibility = if (error != null) View.VISIBLE else View.GONE
-            if (error != null) binding.textJobsState.text = error
+            if (error != null) {
+                binding.textJobsState.text = error
+            }
         }
     }
 
     private fun loadJobs() {
+        binding.textJobsState.visibility = View.GONE
         viewModel.loadJobs(
             technicianId = storage.getTechnicianId(),
             baseUrl = storage.getBaseUrl(),
             apiKey = storage.getApiKey(),
             startDate = startDate.format(bfFormatter) + " 12:00 AM",
-            endDate = endDate.format(bfFormatter) + " 11:59 PM"
+            endDate = endDate.format(bfFormatter) + " 11:59 PM",
+            dateRangeType = dateRangeType
         )
+    }
+
+    private fun launchOptimizedRoute() {
+        val jobs = viewModel.jobs.value.orEmpty().filter {
+            it.address.isNotBlank() && !it.address.equals("Address not provided", ignoreCase = true)
+        }
+        if (jobs.isEmpty()) {
+            binding.textJobsState.visibility = View.VISIBLE
+            binding.textJobsState.text = "No jobs with addresses to route"
+            return
+        }
+        // Deduplicate by normalized address to avoid double stops in Maps
+        val unique = linkedMapOf<String, com.example.arcomtechapp.data.models.Job>()
+        jobs.forEach { job ->
+            val key = job.address.lowercase(Locale.getDefault()).trim()
+            if (!unique.containsKey(key)) {
+                unique[key] = job
+            }
+        }
+        val uniqueJobs = unique.values.toList()
+
+        Log.d("JobsFragment", "Routing stops: ${uniqueJobs.map { it.address }}")
+        val url = buildGoogleRouteUrl(uniqueJobs)
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    }
+
+    private fun buildGoogleRouteUrl(jobs: List<com.example.arcomtechapp.data.models.Job>): String {
+        val encodedStops = jobs.map { Uri.encode(it.address) }
+        val origin = "Current+Location"
+        val destination = encodedStops.last()
+        val waypoints = if (encodedStops.size > 1) {
+            "optimize:true|" + encodedStops.dropLast(1).joinToString("|")
+        } else ""
+        return buildString {
+            append("https://www.google.com/maps/dir/?api=1")
+            append("&origin=$origin")
+            append("&destination=$destination")
+            if (waypoints.isNotEmpty()) {
+                append("&waypoints=$waypoints")
+            }
+            append("&travelmode=driving")
+        }
     }
 
     private fun pickDate(isStart: Boolean) {
@@ -115,6 +171,22 @@ class JobsFragment : Fragment() {
     private fun updateDateLabels() {
         binding.textStartDate.text = "Start: ${startDate.format(bfFormatter)}"
         binding.textEndDate.text = "End: ${endDate.format(bfFormatter)}"
+    }
+
+    private fun setupRangeTypeSpinner() {
+        val options = resources.getStringArray(R.array.job_date_range_types)
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, options)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerDateRangeType.adapter = adapter
+        binding.spinnerDateRangeType.setSelection(options.indexOf(dateRangeType))
+        binding.spinnerDateRangeType.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                dateRangeType = options[position]
+                loadJobs()
+            }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+        }
     }
 
     override fun onDestroyView() {

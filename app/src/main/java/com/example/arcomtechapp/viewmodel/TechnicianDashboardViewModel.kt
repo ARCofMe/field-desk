@@ -35,6 +35,7 @@ class TechnicianDashboardViewModel(
 
     fun loadDashboard(technicianId: String?, baseUrl: String? = null, apiKey: String? = null) {
         _loading.value = true
+        _error.value = null
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 _connectionStatus.postValue(repo.checkConnection(baseUrl, apiKey))

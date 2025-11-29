@@ -4,4 +4,9 @@
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="settings_title">Settings</string>
     <string name="no_jobs_available">No jobs scheduled.</string>
+    <string-array name="job_date_range_types">
+        <item>scheduled</item>
+        <item>created</item>
+        <item>completed</item>
+    </string-array>
 </resources>

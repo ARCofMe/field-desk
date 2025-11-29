@@ -42,4 +42,9 @@
         <item name="android:thumbTint">@color/brand_accent</item>
         <item name="android:trackTint">@color/brand_accent_dark</item>
     </style>
+
+    <!-- Splash uses a drawable window background to show the full logo -->
+    <style name="Theme.ARCoMTechApp.Splash" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+    </style>
 </resources>

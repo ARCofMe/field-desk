@@ -35,15 +35,22 @@ open class BlueFolderRepository(
         if (normalizedUrl.isNullOrBlank() || apiKey.isNullOrBlank()) {
             throw IllegalStateException("Configure base URL and API key first")
         }
-        return bridge.getJobs(normalizedUrl, apiKey, techId, null, null)
+        return bridge.getJobs(normalizedUrl, apiKey, techId, null, null, "scheduled")
     }
 
-    open fun getAllJobs(baseUrl: String?, apiKey: String?, techId: String?, startDate: String?, endDate: String?): List<Job> {
+    open fun getAllJobs(
+        baseUrl: String?,
+        apiKey: String?,
+        techId: String?,
+        startDate: String?,
+        endDate: String?,
+        dateRangeType: String = "scheduled"
+    ): List<Job> {
         val normalizedUrl = normalizeBaseUrl(baseUrl)
         if (normalizedUrl.isNullOrBlank() || apiKey.isNullOrBlank()) {
             throw IllegalStateException("Configure base URL and API key first")
         }
-        return bridge.getJobs(normalizedUrl, apiKey, techId, startDate, endDate)
+        return bridge.getJobs(normalizedUrl, apiKey, techId, startDate, endDate, dateRangeType)
     }
 
     private fun normalizeBaseUrl(baseUrl: String?): String? {

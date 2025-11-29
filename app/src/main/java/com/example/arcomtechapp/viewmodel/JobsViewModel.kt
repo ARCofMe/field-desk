@@ -8,6 +8,7 @@ import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.data.repo.BlueFolderRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import android.util.Log
 
 class JobsViewModel(
     private val repo: BlueFolderRepository = BlueFolderRepository()
@@ -22,13 +23,25 @@ class JobsViewModel(
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
-    fun loadJobs(technicianId: String?, baseUrl: String? = null, apiKey: String? = null, startDate: String? = null, endDate: String? = null) {
+    fun loadJobs(
+        technicianId: String?,
+        baseUrl: String? = null,
+        apiKey: String? = null,
+        startDate: String? = null,
+        endDate: String? = null,
+        dateRangeType: String = "scheduled"
+    ) {
         _loading.value = true
+        _error.value = null
+        Log.d("JobsViewModel", "Loading jobs tech=$technicianId start=$startDate end=$endDate type=$dateRangeType")
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                _jobs.postValue(repo.getAllJobs(baseUrl, apiKey, technicianId, startDate, endDate))
+                val jobs = repo.getAllJobs(baseUrl, apiKey, technicianId, startDate, endDate, dateRangeType)
+                Log.d("JobsViewModel", "Loaded ${jobs.size} jobs")
+                _jobs.postValue(jobs)
                 _error.postValue(null)
             } catch (e: Exception) {
+                Log.e("JobsViewModel", "Error loading jobs", e)
                 _error.postValue(formatError(e.message))
             }
             _loading.postValue(false)

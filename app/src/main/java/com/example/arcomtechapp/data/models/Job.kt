@@ -9,5 +9,6 @@ data class Job(
     val customerName: String,
     val customerPhone: String,
     val status: String,
-    val distanceMiles: Double? = null
+    val distanceMiles: Double? = null,
+    val equipment: String? = null
 ) : Serializable

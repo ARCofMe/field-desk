@@ -28,10 +28,16 @@ class JobAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(job: Job) {
-            binding.textJobTitle.text = "${job.customerName} • ${job.status}"
+            binding.textJobTitle.text = job.customerName
             binding.textJobAddress.text = job.address
             binding.textJobWindow.text = job.appointmentWindow
             binding.textJobPhone.text = job.customerPhone
+
+            val equipment = job.equipment
+            binding.textJobEquipment.isVisible = !equipment.isNullOrBlank()
+            if (!equipment.isNullOrBlank()) {
+                binding.textJobEquipment.text = equipment
+            }
 
             val distance = job.distanceMiles
             if (distance != null) {

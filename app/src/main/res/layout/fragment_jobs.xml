@@ -4,23 +4,18 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_gradient_primary"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:paddingBottom="32dp">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Jobs"
-        android:textColor="@color/brand_text"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+    <include layout="@layout/include_header_app" />
 
     <TextView
         android:id="@+id/text_jobs_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textColor="@color/brand_subtle_text"
-        android:text="Full job list"
+        android:textColor="@color/brand_text"
+        android:text="Jobs"
         android:textSize="14sp" />
 
     <LinearLayout
@@ -68,6 +63,28 @@
             android:text="End: " />
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Date type:"
+            android:textColor="@color/brand_text"
+            android:layout_marginEnd="8dp" />
+
+        <Spinner
+            android:id="@+id/spinner_date_range_type"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:spinnerMode="dropdown" />
+    </LinearLayout>
+
     <Button
         android:id="@+id/button_refresh_jobs"
         android:layout_width="match_parent"
@@ -91,6 +108,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="No jobs"
+        android:textColor="@color/brand_warn"
         android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView
@@ -101,5 +119,15 @@
         android:layout_weight="1"
         android:clipToPadding="false"
         android:paddingBottom="12dp" />
+
+    <Button
+        android:id="@+id/button_optimize_jobs_route"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="12dp"
+        android:text="Optimize route for listed jobs"
+        android:backgroundTint="@color/brand_accent"
+        android:textColor="@color/brand_primary_dark" />
 
 </LinearLayout>

@@ -11,22 +11,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/text_greeting"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Dashboard"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
-        <ImageView
-            android:id="@+id/image_logo_inline"
-            android:layout_width="180dp"
-            android:layout_height="60dp"
-            android:layout_marginTop="8dp"
-            android:adjustViewBounds="true"
-            android:contentDescription="ARCoM logo"
-            android:src="@drawable/arcom_logo_full" />
+        <include layout="@layout/include_header_app" />
 
         <TextView
             android:id="@+id/text_connection"

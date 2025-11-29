@@ -2,19 +2,24 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="@drawable/bg_gradient_primary">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <include layout="@layout/include_header_app" />
+
         <TextView
             android:id="@+id/text_job_id"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:text="Job ID"
             android:textSize="20sp"
+            android:textColor="@color/brand_text"
             android:textStyle="bold" />
 
         <TextView

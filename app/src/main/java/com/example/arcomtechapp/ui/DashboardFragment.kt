@@ -96,7 +96,6 @@ class DashboardFragment : Fragment() {
         statusParts += if (baseUrl.isNullOrBlank()) "No subdomain set" else baseUrl
         statusParts += if (apiKey.isNullOrBlank()) "Missing API key" else "Key saved"
 
-        binding.textGreeting.text = "Home dashboard"
         if (binding.textConnection.text.isNullOrBlank()) {
             binding.textConnection.text = statusParts.joinToString(" • ")
         }
