@@ -33,7 +33,7 @@ class JobsViewModelTest {
                 distanceMiles = 1.0
             )
         )
-        every { repo.getAllJobs(null, null, "t1") } returns jobs
+        every { repo.getAllJobs(null, null, "t1", null, null, "scheduled") } returns jobs
 
         val viewModel = JobsViewModel(repo)
         viewModel.loadJobs("t1")
@@ -47,12 +47,12 @@ class JobsViewModelTest {
     @Test
     fun `loadJobs failure posts error`() {
         val repo = mockk<BlueFolderRepository>()
-        every { repo.getAllJobs(any(), any(), any()) } throws IllegalStateException("boom")
+        every { repo.getAllJobs(any(), any(), any(), any(), any(), any()) } throws IllegalStateException("boom")
 
         val viewModel = JobsViewModel(repo)
         viewModel.loadJobs("t1")
 
-        assertEquals("boom", viewModel.error.getOrAwaitValue())
+        assertEquals("boom", viewModel.error.getOrAwaitValue(ignoreNulls = true))
         // Jobs are never posted; ensure LiveData remains unset/null-safe.
         assertNotNull(viewModel.jobs)
     }

@@ -21,7 +21,9 @@ class Storage(context: Context) {
         val notesDraft: String?,
         val themeMode: Int,
         val routeOrigin: String?,
-        val routeDestination: String?
+        val routeDestination: String?,
+        val lastJobAction: String?,
+        val lastJobActionJobId: String?
     )
 
     fun saveApiKey(key: String?) {
@@ -108,6 +110,17 @@ class Storage(context: Context) {
 
     fun getRouteDestination(): String? = prefs.getString(KEY_ROUTE_DESTINATION, null)
 
+    fun saveLastJobAction(jobId: String?, action: String?) {
+        prefs.edit().apply {
+            if (jobId.isNullOrBlank()) remove(KEY_LAST_JOB_ACTION_JOB_ID) else putString(KEY_LAST_JOB_ACTION_JOB_ID, jobId)
+            if (action.isNullOrBlank()) remove(KEY_LAST_JOB_ACTION) else putString(KEY_LAST_JOB_ACTION, action)
+        }.apply()
+    }
+
+    fun getLastJobAction(): String? = prefs.getString(KEY_LAST_JOB_ACTION, null)
+
+    fun getLastJobActionJobId(): String? = prefs.getString(KEY_LAST_JOB_ACTION_JOB_ID, null)
+
     fun getSnapshot(): SettingsSnapshot = SettingsSnapshot(
         apiKey = getApiKey(),
         baseUrl = getBaseUrl(),
@@ -120,7 +133,9 @@ class Storage(context: Context) {
         notesDraft = getNotesDraft(),
         themeMode = getThemeMode(),
         routeOrigin = getRouteOrigin(),
-        routeDestination = getRouteDestination()
+        routeDestination = getRouteDestination(),
+        lastJobAction = getLastJobAction(),
+        lastJobActionJobId = getLastJobActionJobId()
     )
 
     fun clearAll() {
@@ -140,5 +155,7 @@ class Storage(context: Context) {
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_ROUTE_ORIGIN = "route_origin"
         const val KEY_ROUTE_DESTINATION = "route_destination"
+        const val KEY_LAST_JOB_ACTION = "last_job_action"
+        const val KEY_LAST_JOB_ACTION_JOB_ID = "last_job_action_job_id"
     }
 }

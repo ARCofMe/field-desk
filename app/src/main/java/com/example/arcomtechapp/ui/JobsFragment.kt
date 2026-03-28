@@ -17,6 +17,7 @@ import com.example.arcomtechapp.R
 import com.example.arcomtechapp.databinding.FragmentJobsBinding
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.viewmodel.JobsViewModel
+import com.example.arcomtechapp.workflow.JobWorkflow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -85,9 +86,16 @@ class JobsFragment : Fragment() {
 
     private fun observeViewModel() {
         viewModel.jobs.observe(viewLifecycleOwner) { jobs ->
-            adapter.submitList(jobs)
+            val ordered = JobWorkflow.sortForTechnicianFlow(jobs)
+            adapter.submitList(ordered)
             binding.textJobsState.visibility = if (jobs.isEmpty()) View.VISIBLE else View.GONE
             if (jobs.isEmpty()) binding.textJobsState.text = "No jobs found"
+            binding.textJobsHeader.text = if (ordered.isEmpty()) {
+                buildHeaderText()
+            } else {
+                val active = JobWorkflow.activeJob(ordered)
+                buildHeaderText() + " • Focus: #${active?.id ?: ordered.first().id}"
+            }
         }
 
         viewModel.loading.observe(viewLifecycleOwner) { loading ->
@@ -115,7 +123,7 @@ class JobsFragment : Fragment() {
     }
 
     private fun launchOptimizedRoute() {
-        val jobs = viewModel.jobs.value.orEmpty().filter {
+        val jobs = JobWorkflow.sortForTechnicianFlow(viewModel.jobs.value.orEmpty()).filter {
             it.address.isNotBlank() && !it.address.equals("Address not provided", ignoreCase = true)
         }
         if (jobs.isEmpty()) {
@@ -225,24 +233,7 @@ class JobsFragment : Fragment() {
     }
 
     private fun orderStops(originLat: Double, originLng: Double, jobs: List<com.example.arcomtechapp.data.models.Job>): List<com.example.arcomtechapp.data.models.Job> {
-        // Order by service window buckets (AM -> PM -> other), preserving original order within each bucket.
-        val withBucket = jobs.mapIndexed { idx, job ->
-            Triple(job, idx, windowBucket(job.appointmentWindow))
-        }
-        return withBucket.sortedWith(
-            compareBy<Triple<com.example.arcomtechapp.data.models.Job, Int, Int>> { it.third }
-                .thenBy { it.second }
-        ).map { it.first }
-    }
-
-    private fun windowBucket(window: String?): Int {
-        if (window.isNullOrBlank()) return 2
-        val win = window.lowercase(Locale.getDefault())
-        return when {
-            "am" in win -> 0
-            "pm" in win -> 1
-            else -> 2
-        }
+        return JobWorkflow.sortForTechnicianFlow(jobs)
     }
 
 

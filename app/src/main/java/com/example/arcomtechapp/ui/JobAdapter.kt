@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.databinding.ItemJobBinding
+import com.example.arcomtechapp.workflow.JobWorkflow
 
 class JobAdapter(
     private val onJobClicked: (Job) -> Unit
@@ -39,11 +40,12 @@ class JobAdapter(
             if (equipmentLabel.isNotBlank()) titleParts += equipmentLabel
             if (job.customerName.isNotBlank()) titleParts += job.customerName
             binding.textJobTitle.text = titleParts.joinToString(" - ")
+            val summary = JobWorkflow.summarize(job)
             binding.textJobAddress.text = job.address
-            binding.textJobWindow.text = job.appointmentWindow
+            binding.textJobWindow.text = listOf(job.appointmentWindow, summary.headline).filter { it.isNotBlank() }.joinToString(" • ")
             binding.textJobPhone.text = job.customerPhone
-
-            binding.textJobEquipment.isVisible = false
+            binding.textJobEquipment.isVisible = true
+            binding.textJobEquipment.text = summary.nextStep
 
             val distance = job.distanceMiles
             if (distance != null) {

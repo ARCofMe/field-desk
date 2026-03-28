@@ -48,6 +48,6 @@ class TechnicianDashboardViewModelTest {
         val viewModel = TechnicianDashboardViewModel(repo)
         viewModel.loadDashboard("t1")
 
-        assertEquals("dash fail", viewModel.error.getOrAwaitValue())
+        assertEquals("dash fail", viewModel.error.getOrAwaitValue(ignoreNulls = true))
     }
 }

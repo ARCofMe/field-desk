@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="180dp"
+    android:background="@drawable/bg_gradient_primary"
+    android:gravity="bottom"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <ImageView
+        android:id="@+id/header_logo"
+        android:layout_width="140dp"
+        android:layout_height="52dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="ARCoM logo"
+        android:src="@drawable/arcom_logo" />
+
+    <TextView
+        android:id="@+id/header_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="ARCoM Tech App"
+        android:textColor="@color/brand_text"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/header_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="BlueFolder tools"
+        android:textColor="@color/brand_subtle_text" />
+</LinearLayout>
