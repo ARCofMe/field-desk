@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.databinding.FragmentPhotosBinding
 import com.example.arcomtechapp.storage.Storage
+import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
 
 class PhotosFragment : Fragment() {
@@ -24,7 +25,7 @@ class PhotosFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        job = arguments?.getSerializable(ARG_JOB) as? Job
+        job = arguments?.serializableCompat(ARG_JOB)
     }
 
     private val cameraLauncher = registerForActivityResult(

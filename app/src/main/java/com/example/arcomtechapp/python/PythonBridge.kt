@@ -53,7 +53,8 @@ class PythonBridge {
                     customerPhone = obj.optString("customerPhone"),
                     status = obj.optString("status"),
                     distanceMiles = distanceMiles,
-                    equipment = obj.optString("equipment", null)
+                    equipment = obj.takeIf { it.has("equipment") && !it.isNull("equipment") }
+                        ?.optString("equipment")
                 )
             )
         }

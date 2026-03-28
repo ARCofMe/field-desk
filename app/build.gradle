@@ -47,13 +47,11 @@ android {
         }
     }
 
-    // Make Java use 1.8 bytecode
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
-    // Make Kotlin match Java: 1.8
     kotlinOptions {
         jvmTarget = "1.8"
     }

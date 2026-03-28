@@ -12,6 +12,7 @@ import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.databinding.FragmentJobDetailBinding
 import com.example.arcomtechapp.storage.Storage
+import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
 import com.example.arcomtechapp.workflow.JobProgress
 import com.example.arcomtechapp.workflow.JobWorkflow
@@ -27,7 +28,7 @@ class JobDetailFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        job = arguments?.getSerializable(ARG_JOB) as? Job
+        job = arguments?.serializableCompat(ARG_JOB)
         launchCallOnOpen = arguments?.getBoolean(ARG_LAUNCH_CALL, false) == true
         launchNavigationOnOpen = arguments?.getBoolean(ARG_LAUNCH_NAVIGATION, false) == true
     }

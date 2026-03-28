@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.databinding.FragmentNotesBinding
 import com.example.arcomtechapp.storage.Storage
+import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
 import com.example.arcomtechapp.workflow.JobProgress
 
@@ -21,7 +22,7 @@ class NotesFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        job = arguments?.getSerializable(ARG_JOB) as? Job
+        job = arguments?.serializableCompat(ARG_JOB)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {

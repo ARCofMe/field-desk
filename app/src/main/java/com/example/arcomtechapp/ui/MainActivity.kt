@@ -6,6 +6,7 @@ import android.view.MenuItem
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.activity.OnBackPressedCallback
 import androidx.drawerlayout.widget.DrawerLayout
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.storage.Storage
@@ -42,6 +43,17 @@ class MainActivity : AppCompatActivity(),
 
         navView.setNavigationItemSelectedListener(this)
         updateNavHeader()
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (drawerLayout.isDrawerOpen(android.view.Gravity.START)) {
+                    drawerLayout.closeDrawer(android.view.Gravity.START)
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                    isEnabled = true
+                }
+            }
+        })
 
         if (savedInstanceState == null) {
             showFragment(TodayFragment())
@@ -82,15 +94,6 @@ class MainActivity : AppCompatActivity(),
         title.text = storage.getTechnicianName().orEmpty().ifBlank { "ARCoM Tech" }
         val baseUrl = storage.getBaseUrl()
         subtitle.text = baseUrl?.takeIf { it.isNotBlank() } ?: "BlueFolder not configured"
-        // Placeholder: If you add a light/dark logo variant later, swap here based on theme.
         logo.setImageResource(R.drawable.arcom_logo_full)
-    }
-
-    override fun onBackPressed() {
-        if (drawerLayout.isDrawerOpen(android.view.Gravity.START)) {
-            drawerLayout.closeDrawer(android.view.Gravity.START)
-        } else {
-            super.onBackPressed()
-        }
     }
 }

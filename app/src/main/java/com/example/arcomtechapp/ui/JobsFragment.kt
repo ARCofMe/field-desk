@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.util.Log
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.viewModels
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
@@ -42,7 +43,17 @@ class JobsFragment : Fragment() {
     private val bfFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
     private var dateRangeType: String = "scheduled"
     private val locationPermission = Manifest.permission.ACCESS_FINE_LOCATION
-    private val locationRequestCode = 1001
+    private var pendingRouteJobs: List<com.example.arcomtechapp.data.models.Job> = emptyList()
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            requestLocationAndRoute(pendingRouteJobs)
+        } else {
+            binding.textJobsState.visibility = View.VISIBLE
+            binding.textJobsState.text = "Location permission denied"
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentJobsBinding.inflate(inflater, container, false)
@@ -192,8 +203,9 @@ class JobsFragment : Fragment() {
     }
 
     private fun requestLocationAndRoute(jobs: List<com.example.arcomtechapp.data.models.Job>) {
+        pendingRouteJobs = jobs
         if (ActivityCompat.checkSelfPermission(requireContext(), locationPermission) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(locationPermission), locationRequestCode)
+            locationPermissionLauncher.launch(locationPermission)
             return
         }
         val fused = LocationServices.getFusedLocationProviderClient(requireContext())
@@ -201,7 +213,7 @@ class JobsFragment : Fragment() {
             val lat = loc?.latitude
             val lng = loc?.longitude
             if (lat != null && lng != null) {
-                val ordered = orderStops(lat, lng, jobs)
+                val ordered = orderStops(jobs)
                 val url = buildGoogleRouteUrl(lat, lng, ordered)
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
             } else {
@@ -214,25 +226,7 @@ class JobsFragment : Fragment() {
         }
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == locationRequestCode) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Retry with whatever jobs are currently loaded
-                val jobs = viewModel.jobs.value.orEmpty().filter {
-                    it.address.isNotBlank() && !it.address.equals("Address not provided", ignoreCase = true)
-                }
-                if (jobs.isNotEmpty()) {
-                    requestLocationAndRoute(jobs)
-                }
-            } else {
-                binding.textJobsState.visibility = View.VISIBLE
-                binding.textJobsState.text = "Location permission denied"
-            }
-        }
-    }
-
-    private fun orderStops(originLat: Double, originLng: Double, jobs: List<com.example.arcomtechapp.data.models.Job>): List<com.example.arcomtechapp.data.models.Job> {
+    private fun orderStops(jobs: List<com.example.arcomtechapp.data.models.Job>): List<com.example.arcomtechapp.data.models.Job> {
         return JobWorkflow.sortForTechnicianFlow(jobs)
     }
 
