@@ -78,6 +78,14 @@
                     android:text="Checklist"
                     android:textColor="@color/brand_subtle_text" />
 
+                <TextView
+                    android:id="@+id/text_local_progress"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Local progress"
+                    android:textColor="@color/brand_subtle_text" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

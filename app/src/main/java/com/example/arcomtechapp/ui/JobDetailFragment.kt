@@ -12,6 +12,8 @@ import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.databinding.FragmentJobDetailBinding
 import com.example.arcomtechapp.storage.Storage
+import com.example.arcomtechapp.workflow.JobExecutionAssist
+import com.example.arcomtechapp.workflow.JobProgress
 import com.example.arcomtechapp.workflow.JobWorkflow
 
 class JobDetailFragment : Fragment() {
@@ -45,8 +47,22 @@ class JobDetailFragment : Fragment() {
         job?.let { renderJob(it) }
     }
 
+    override fun onResume() {
+        super.onResume()
+        job?.let { renderJob(it) }
+    }
+
     private fun renderJob(job: Job) {
         val summary = JobWorkflow.summarize(job)
+        val progress = storage.getLocalJobProgress(job.id)
+        val closeout = JobExecutionAssist.completionSummary(
+            job,
+            JobProgress(
+                noteDraftLength = progress.noteDraft?.length ?: 0,
+                photoCount = progress.photoCount,
+                lastPhotoLabel = progress.lastPhotoLabel
+            )
+        )
         binding.textJobId.text = job.id
         binding.textCustomerName.text = job.customerName
         binding.textJobStatus.text = "${summary.headline} • ${job.status}"
@@ -57,6 +73,25 @@ class JobDetailFragment : Fragment() {
         binding.textWorkflowHeadline.text = summary.nextStep
         binding.textWorkflowChecklist.text = summary.checklist.joinToString("\n") {
             "${if (it.done) "•" else "○"} ${it.label}"
+        }
+        binding.textLocalProgress.text = buildString {
+            append(closeout.headline)
+            append("\nNotes: ")
+            append(
+                if ((progress.noteDraft?.length ?: 0) > 0) {
+                    "${progress.noteDraft?.length ?: 0} chars saved"
+                } else {
+                    "none yet"
+                }
+            )
+            append(" • Photos: ${progress.photoCount}")
+            progress.lastPhotoLabel?.takeIf { it.isNotBlank() }?.let {
+                append("\nLast photo: $it")
+            }
+            if (closeout.blockers.isNotEmpty()) {
+                append("\n")
+                append(closeout.blockers.joinToString("\n") { "○ $it" })
+            }
         }
         binding.buttonPrimaryWorkflow.text = summary.quickActions.firstOrNull()?.label ?: "Open workflow"
         binding.buttonSecondaryWorkflow.text = summary.quickActions.getOrNull(1)?.label ?: "More actions"
@@ -104,7 +139,7 @@ class JobDetailFragment : Fragment() {
     private fun openNotes(job: Job) {
         storage.saveLastJobAction(job.id, "Opened guided note")
         parentFragmentManager.beginTransaction()
-            .replace(R.id.content_frame, NotesFragment())
+            .replace(R.id.content_frame, NotesFragment.newInstance(job))
             .addToBackStack(null)
             .commit()
     }
@@ -112,7 +147,7 @@ class JobDetailFragment : Fragment() {
     private fun openPhotos(job: Job) {
         storage.saveLastJobAction(job.id, "Opened photo capture")
         parentFragmentManager.beginTransaction()
-            .replace(R.id.content_frame, PhotosFragment())
+            .replace(R.id.content_frame, PhotosFragment.newInstance(job))
             .addToBackStack(null)
             .commit()
     }
@@ -126,12 +161,28 @@ class JobDetailFragment : Fragment() {
             "parts", "complete", "arrive", "enroute" -> {
                 val label = when (key) {
                     "parts" -> "Captured parts issue locally"
-                    "complete" -> "Prepared closeout locally"
+                    "complete" -> {
+                        val progress = storage.getLocalJobProgress(job.id)
+                        val closeout = JobExecutionAssist.completionSummary(
+                            job,
+                            JobProgress(
+                                noteDraftLength = progress.noteDraft?.length ?: 0,
+                                photoCount = progress.photoCount,
+                                lastPhotoLabel = progress.lastPhotoLabel
+                            )
+                        )
+                        if (closeout.ready) {
+                            "Closeout checklist ready"
+                        } else {
+                            closeout.blockers.firstOrNull() ?: "Prepared closeout locally"
+                        }
+                    }
                     "arrive" -> "Marked arrived locally"
                     else -> "Marked en route locally"
                 }
                 storage.saveLastJobAction(job.id, label)
                 Toast.makeText(requireContext(), "$label. Wire this to Ops Hub.", Toast.LENGTH_SHORT).show()
+                renderJob(job)
             }
             else -> Toast.makeText(requireContext(), "More guided actions coming next.", Toast.LENGTH_SHORT).show()
         }

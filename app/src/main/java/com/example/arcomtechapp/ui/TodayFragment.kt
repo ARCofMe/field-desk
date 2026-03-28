@@ -113,14 +113,14 @@ class TodayFragment : Fragment() {
             "notes" -> {
                 storage.saveLastJobAction(job.id, "Opened guided note")
                 parentFragmentManager.beginTransaction()
-                    .replace(R.id.content_frame, NotesFragment())
+                    .replace(R.id.content_frame, NotesFragment.newInstance(job))
                     .addToBackStack(null)
                     .commit()
             }
             "photos" -> {
                 storage.saveLastJobAction(job.id, "Opened photo workflow")
                 parentFragmentManager.beginTransaction()
-                    .replace(R.id.content_frame, PhotosFragment())
+                    .replace(R.id.content_frame, PhotosFragment.newInstance(job))
                     .addToBackStack(null)
                     .commit()
             }

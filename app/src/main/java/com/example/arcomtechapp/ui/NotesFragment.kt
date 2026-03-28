@@ -6,14 +6,23 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.databinding.FragmentNotesBinding
 import com.example.arcomtechapp.storage.Storage
+import com.example.arcomtechapp.workflow.JobExecutionAssist
+import com.example.arcomtechapp.workflow.JobProgress
 
 class NotesFragment : Fragment() {
 
     private var _binding: FragmentNotesBinding? = null
     private val binding get() = _binding!!
     private lateinit var storage: Storage
+    private var job: Job? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        job = arguments?.getSerializable(ARG_JOB) as? Job
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentNotesBinding.inflate(inflater, container, false)
@@ -24,17 +33,30 @@ class NotesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.textNotesMeta.text = buildMeta()
-        binding.inputNote.setText(storage.getNotesDraft().orEmpty())
+        binding.textTemplateOne.setOnClickListener { appendTemplate(0) }
+        binding.textTemplateTwo.setOnClickListener { appendTemplate(1) }
+        binding.textTemplateThree.setOnClickListener { appendTemplate(2) }
+        binding.textTemplateFour.setOnClickListener { appendTemplate(3) }
+        binding.inputNote.setText(storage.getJobNotesDraft(job?.id).orEmpty())
         updateDraftStatus()
 
         binding.buttonSaveDraft.setOnClickListener {
-            storage.setNotesDraft(binding.inputNote.text?.toString().orEmpty())
+            val note = binding.inputNote.text?.toString().orEmpty()
+            storage.setJobNotesDraft(job?.id, note)
+            if (job != null) {
+                storage.saveLastJobAction(job?.id, "Saved guided note draft")
+            } else {
+                storage.setNotesDraft(note)
+            }
             updateDraftStatus()
             Toast.makeText(requireContext(), "Draft saved locally", Toast.LENGTH_SHORT).show()
         }
 
         binding.buttonClearDraft.setOnClickListener {
-            storage.clearNotesDraft()
+            storage.clearJobNotesDraft(job?.id)
+            if (job == null) {
+                storage.clearNotesDraft()
+            }
             binding.inputNote.setText("")
             updateDraftStatus()
         }
@@ -44,13 +66,21 @@ class NotesFragment : Fragment() {
             if (note.isBlank()) {
                 Toast.makeText(requireContext(), "Nothing to send yet", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(requireContext(), "Would send note via BlueFolder (stub)", Toast.LENGTH_SHORT).show()
+                storage.saveLastJobAction(job?.id, "Prepared note for submission")
+                storage.setJobNotesDraft(job?.id, note)
+                Toast.makeText(requireContext(), "Note prepared for Ops Hub handoff", Toast.LENGTH_SHORT).show()
+                updateDraftStatus()
             }
         }
     }
 
     private fun buildMeta(): String {
         val parts = mutableListOf<String>()
+        job?.let {
+            parts += "Job #${it.id}"
+            if (it.customerName.isNotBlank()) parts += it.customerName
+            if (!it.equipment.isNullOrBlank()) parts += it.equipment
+        }
         parts += storage.getTechnicianName()?.ifBlank { "Technician" } ?: "Technician"
         storage.getTechnicianId()?.let { if (it.isNotBlank()) parts += "ID: $it" }
         parts += storage.getBaseUrl()?.ifBlank { "No subdomain" } ?: "No subdomain"
@@ -59,11 +89,67 @@ class NotesFragment : Fragment() {
     }
 
     private fun updateDraftStatus() {
-        val draft = storage.getNotesDraft()
+        val draft = storage.getJobNotesDraft(job?.id)
+        val progress = storage.getLocalJobProgress(job?.id)
+        val closeout = job?.let {
+            JobExecutionAssist.completionSummary(
+                it,
+                JobProgress(
+                    noteDraftLength = draft?.length ?: 0,
+                    photoCount = progress.photoCount,
+                    lastPhotoLabel = progress.lastPhotoLabel
+                )
+            )
+        }
         binding.textDraftStatus.text = if (draft.isNullOrBlank()) {
-            "No draft saved"
+            "No draft saved${closeout?.let { ". ${it.headline}" } ?: ""}"
         } else {
-            "Draft saved (${draft.length} chars)"
+            buildString {
+                append("Draft saved (${draft.length} chars)")
+                closeout?.let {
+                    append("\n${it.headline}")
+                    if (it.blockers.isNotEmpty()) {
+                        append("\n")
+                        append(it.blockers.joinToString("\n") { blocker -> "○ $blocker" })
+                    }
+                }
+            }
+        }
+    }
+
+    private fun appendTemplate(index: Int) {
+        val template = JobExecutionAssist.noteTemplates(
+            job ?: Job(
+                id = "local",
+                address = "",
+                appointmentWindow = "",
+                customerName = "Customer",
+                customerPhone = "",
+                status = "Pending",
+                distanceMiles = null,
+                equipment = null
+            )
+        ).getOrNull(index) ?: return
+        val current = binding.inputNote.text?.toString().orEmpty().trim()
+        val updated = if (current.contains(template.body)) {
+            current
+        } else {
+            listOf(current, template.body).filter { it.isNotBlank() }.joinToString("\n\n")
+        }
+        binding.inputNote.setText(updated)
+        binding.inputNote.setSelection(updated.length)
+        updateDraftStatus()
+    }
+
+    companion object {
+        private const val ARG_JOB = "arg_job"
+
+        fun newInstance(job: Job): NotesFragment {
+            val fragment = NotesFragment()
+            fragment.arguments = Bundle().apply {
+                putSerializable(ARG_JOB, job)
+            }
+            return fragment
         }
     }
 

@@ -26,6 +26,12 @@ class Storage(context: Context) {
         val lastJobActionJobId: String?
     )
 
+    data class LocalJobProgress(
+        val noteDraft: String?,
+        val photoCount: Int,
+        val lastPhotoLabel: String?
+    )
+
     fun saveApiKey(key: String?) {
         prefs.edit().apply {
             if (key.isNullOrBlank()) remove(KEY_API_KEY) else putString(KEY_API_KEY, key)
@@ -82,6 +88,29 @@ class Storage(context: Context) {
         prefs.edit().remove(KEY_NOTES_DRAFT).apply()
     }
 
+    fun setJobNotesDraft(jobId: String?, draft: String?) {
+        if (jobId.isNullOrBlank()) {
+            if (draft.isNullOrBlank()) clearNotesDraft() else setNotesDraft(draft)
+            return
+        }
+        prefs.edit().apply {
+            if (draft.isNullOrBlank()) remove(jobNotesKey(jobId)) else putString(jobNotesKey(jobId), draft)
+        }.apply()
+    }
+
+    fun getJobNotesDraft(jobId: String?): String? {
+        if (jobId.isNullOrBlank()) return getNotesDraft()
+        return prefs.getString(jobNotesKey(jobId), null)
+    }
+
+    fun clearJobNotesDraft(jobId: String?) {
+        if (jobId.isNullOrBlank()) {
+            clearNotesDraft()
+            return
+        }
+        prefs.edit().remove(jobNotesKey(jobId)).apply()
+    }
+
     fun markSyncNow(timestamp: Long = System.currentTimeMillis()) {
         prefs.edit().putLong(KEY_LAST_SYNC, timestamp).apply()
     }
@@ -121,6 +150,31 @@ class Storage(context: Context) {
 
     fun getLastJobActionJobId(): String? = prefs.getString(KEY_LAST_JOB_ACTION_JOB_ID, null)
 
+    fun recordJobPhotoCapture(jobId: String?, label: String) {
+        if (jobId.isNullOrBlank()) return
+        val count = getJobPhotoCount(jobId) + 1
+        prefs.edit()
+            .putInt(jobPhotoCountKey(jobId), count)
+            .putString(jobPhotoLabelKey(jobId), label)
+            .apply()
+    }
+
+    fun getJobPhotoCount(jobId: String?): Int {
+        if (jobId.isNullOrBlank()) return 0
+        return prefs.getInt(jobPhotoCountKey(jobId), 0)
+    }
+
+    fun getJobLastPhotoLabel(jobId: String?): String? {
+        if (jobId.isNullOrBlank()) return null
+        return prefs.getString(jobPhotoLabelKey(jobId), null)
+    }
+
+    fun getLocalJobProgress(jobId: String?): LocalJobProgress = LocalJobProgress(
+        noteDraft = getJobNotesDraft(jobId),
+        photoCount = getJobPhotoCount(jobId),
+        lastPhotoLabel = getJobLastPhotoLabel(jobId)
+    )
+
     fun getSnapshot(): SettingsSnapshot = SettingsSnapshot(
         apiKey = getApiKey(),
         baseUrl = getBaseUrl(),
@@ -158,4 +212,10 @@ class Storage(context: Context) {
         const val KEY_LAST_JOB_ACTION = "last_job_action"
         const val KEY_LAST_JOB_ACTION_JOB_ID = "last_job_action_job_id"
     }
+
+    private fun jobNotesKey(jobId: String): String = "job_notes_$jobId"
+
+    private fun jobPhotoCountKey(jobId: String): String = "job_photo_count_$jobId"
+
+    private fun jobPhotoLabelKey(jobId: String): String = "job_photo_label_$jobId"
 }

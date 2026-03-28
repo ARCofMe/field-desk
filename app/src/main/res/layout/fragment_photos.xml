@@ -13,11 +13,58 @@
         <include layout="@layout/include_header_app" />
 
         <TextView
+            android:id="@+id/text_photo_job"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Job context"
+            android:textColor="@color/brand_text"
+            android:textStyle="bold" />
+
+        <TextView
             android:id="@+id/text_photo_config"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="Config" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/button_photo_type_one"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Model / serial" />
+
+            <Button
+                android:id="@+id/button_photo_type_two"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="Overview" />
+
+            <Button
+                android:id="@+id/button_photo_type_three"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="Issue" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/text_photo_prompt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Prompt"
+            android:textColor="@color/brand_subtle_text" />
 
         <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/switch_inline_compress"
@@ -45,14 +92,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Optimize via Python (stub)" />
+            android:text="Prepare upload package" />
 
         <Button
             android:id="@+id/button_email_upload"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Email upload helper" />
+            android:text="Mark ready for upload" />
 
         <ImageView
             android:id="@+id/image_preview"
@@ -62,6 +109,14 @@
             android:adjustViewBounds="true"
             android:background="#dddddd"
             android:scaleType="centerCrop" />
+
+        <TextView
+            android:id="@+id/text_photo_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Photos captured: 0"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/text_photo_status"
