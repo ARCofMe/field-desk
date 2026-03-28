@@ -10,12 +10,17 @@ import androidx.fragment.app.Fragment
 import android.widget.Toast
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentJobDetailBinding
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
 import com.example.arcomtechapp.workflow.JobProgress
 import com.example.arcomtechapp.workflow.JobWorkflow
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class JobDetailFragment : Fragment() {
 
@@ -109,12 +114,10 @@ class JobDetailFragment : Fragment() {
         binding.buttonWorkflowPhotos.setOnClickListener { openPhotos(job) }
         binding.buttonWorkflowNotes.setOnClickListener { openNotes(job) }
         binding.buttonWorkflowParts.setOnClickListener {
-            storage.saveLastJobAction(job.id, "Opened parts handoff")
-            Toast.makeText(requireContext(), "Parts workflow should call Ops Hub next.", Toast.LENGTH_SHORT).show()
+            performBackendAction(job, "parts", "Parts follow-up requested")
         }
         binding.buttonWorkflowComplete.setOnClickListener {
-            storage.saveLastJobAction(job.id, "Prepared closeout checklist")
-            Toast.makeText(requireContext(), "Completion guard should be wired to Ops Hub.", Toast.LENGTH_SHORT).show()
+            handleWorkflowAction(job, "complete")
         }
 
         if (launchCallOnOpen) {
@@ -160,32 +163,60 @@ class JobDetailFragment : Fragment() {
             "photos" -> openPhotos(job)
             "notes" -> openNotes(job)
             "parts", "complete", "arrive", "enroute" -> {
-                val label = when (key) {
-                    "parts" -> "Captured parts issue locally"
-                    "complete" -> {
-                        val progress = storage.getLocalJobProgress(job.id)
-                        val closeout = JobExecutionAssist.completionSummary(
-                            job,
-                            JobProgress(
-                                noteDraftLength = progress.noteDraft?.length ?: 0,
-                                photoCount = progress.photoCount,
-                                lastPhotoLabel = progress.lastPhotoLabel
-                            )
+                if (key == "complete") {
+                    val progress = storage.getLocalJobProgress(job.id)
+                    val closeout = JobExecutionAssist.completionSummary(
+                        job,
+                        JobProgress(
+                            noteDraftLength = progress.noteDraft?.length ?: 0,
+                            photoCount = progress.photoCount,
+                            lastPhotoLabel = progress.lastPhotoLabel
                         )
-                        if (closeout.ready) {
-                            "Closeout checklist ready"
-                        } else {
-                            closeout.blockers.firstOrNull() ?: "Prepared closeout locally"
-                        }
+                    )
+                    if (!closeout.ready) {
+                        val blocker = closeout.blockers.firstOrNull() ?: closeout.headline
+                        storage.saveLastJobAction(job.id, blocker)
+                        Toast.makeText(requireContext(), blocker, Toast.LENGTH_SHORT).show()
+                        renderJob(job)
+                        return
                     }
+                }
+                val fallbackLabel = when (key) {
+                    "parts" -> "Parts follow-up requested"
+                    "complete" -> "Closeout checklist ready"
                     "arrive" -> "Marked arrived locally"
                     else -> "Marked en route locally"
                 }
-                storage.saveLastJobAction(job.id, label)
-                Toast.makeText(requireContext(), "$label. Wire this to Ops Hub.", Toast.LENGTH_SHORT).show()
-                renderJob(job)
+                performBackendAction(job, key.orEmpty(), fallbackLabel)
             }
             else -> Toast.makeText(requireContext(), "More guided actions coming next.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun performBackendAction(job: Job, actionKey: String, fallbackLabel: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val repo = RepositoryProvider.fromContext(requireContext())
+            val result = if (actionKey == "parts") {
+                repo.createPartsRequest(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    job.id,
+                    "Requested from mobile technician workflow"
+                )
+            } else {
+                repo.updateJobStatus(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    job.id,
+                    actionKey
+                )
+            }
+            withContext(Dispatchers.Main) {
+                val message = if (result.success) result.message else fallbackLabel
+                storage.saveLastJobAction(job.id, message)
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                renderJob(job)
+            }
         }
     }
 

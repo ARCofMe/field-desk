@@ -12,6 +12,7 @@ import com.example.arcomtechapp.databinding.FragmentTodayBinding
 import androidx.fragment.app.viewModels
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.viewmodel.TechnicianDashboardViewModel
 import com.example.arcomtechapp.workflow.JobWorkflow
@@ -20,7 +21,9 @@ class TodayFragment : Fragment() {
 
     private var _binding: FragmentTodayBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: TechnicianDashboardViewModel by viewModels()
+    private val viewModel: TechnicianDashboardViewModel by viewModels {
+        TechnicianDashboardViewModel.Factory(RepositoryProvider.fromContext(requireContext()))
+    }
     private lateinit var storage: Storage
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -38,7 +41,7 @@ class TodayFragment : Fragment() {
                 .commit()
         }
         observeViewModel()
-        viewModel.loadDashboard(storage.getTechnicianId(), storage.getBaseUrl(), storage.getApiKey())
+        viewModel.loadDashboard(storage.getTechnicianId(), storage.getActiveBaseUrl(), storage.getActiveApiKey())
     }
 
     private fun observeViewModel() {

@@ -3,15 +3,17 @@ package com.example.arcomtechapp.viewmodel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.arcomtechapp.data.models.Job
-import com.example.arcomtechapp.data.repo.BlueFolderRepository
+import com.example.arcomtechapp.data.repo.BlueFolderFieldOpsRepository
+import com.example.arcomtechapp.data.repo.FieldOpsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import android.util.Log
 
 class JobsViewModel(
-    private val repo: BlueFolderRepository = BlueFolderRepository()
+    private val repo: FieldOpsRepository = BlueFolderFieldOpsRepository()
 ) : ViewModel() {
 
     private val _jobs = MutableLiveData<List<Job>>()
@@ -52,5 +54,17 @@ class JobsViewModel(
         if (message.isNullOrBlank()) return "Unable to load jobs"
         val clean = message.substringBefore("<!DOCTYPE").substringBefore("<html")
         return clean.replace("\n", " ").trim()
+    }
+
+    class Factory(
+        private val repo: FieldOpsRepository
+    ) : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            if (modelClass.isAssignableFrom(JobsViewModel::class.java)) {
+                @Suppress("UNCHECKED_CAST")
+                return JobsViewModel(repo) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+        }
     }
 }

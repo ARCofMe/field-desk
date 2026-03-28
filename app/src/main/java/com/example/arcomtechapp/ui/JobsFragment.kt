@@ -15,6 +15,7 @@ import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.arcomtechapp.R
+import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentJobsBinding
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.viewmodel.JobsViewModel
@@ -35,7 +36,9 @@ class JobsFragment : Fragment() {
 
     private var _binding: FragmentJobsBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: JobsViewModel by viewModels()
+    private val viewModel: JobsViewModel by viewModels {
+        JobsViewModel.Factory(RepositoryProvider.fromContext(requireContext()))
+    }
     private lateinit var adapter: JobAdapter
     private lateinit var storage: Storage
     private var startDate: LocalDate = LocalDate.now()
@@ -125,8 +128,8 @@ class JobsFragment : Fragment() {
         binding.textJobsState.visibility = View.GONE
         viewModel.loadJobs(
             technicianId = storage.getTechnicianId(),
-            baseUrl = storage.getBaseUrl(),
-            apiKey = storage.getApiKey(),
+            baseUrl = storage.getActiveBaseUrl(),
+            apiKey = storage.getActiveApiKey(),
             startDate = startDate.format(bfFormatter) + " 12:00 AM",
             endDate = endDate.format(bfFormatter) + " 11:59 PM",
             dateRangeType = dateRangeType

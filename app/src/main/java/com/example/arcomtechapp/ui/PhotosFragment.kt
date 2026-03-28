@@ -9,11 +9,16 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentPhotosBinding
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class PhotosFragment : Fragment() {
 
@@ -69,9 +74,26 @@ class PhotosFragment : Fragment() {
             updateStatus("Prepared ${selectedPhotoLabel().lowercase()} package for upload")
         }
         binding.buttonEmailUpload.setOnClickListener {
-            storage.saveLastJobAction(job?.id, "Queued photo upload handoff")
-            Toast.makeText(requireContext(), "Photo marked ready for Ops Hub handoff", Toast.LENGTH_SHORT).show()
-            renderProgress()
+            val currentJob = job
+            if (currentJob == null) {
+                Toast.makeText(requireContext(), "Open photos from a job to sync them", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            binding.buttonEmailUpload.isEnabled = false
+            lifecycleScope.launch(Dispatchers.IO) {
+                val result = RepositoryProvider.fromContext(requireContext()).preparePhotoUpload(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    currentJob.id,
+                    selectedPhotoLabel()
+                )
+                withContext(Dispatchers.Main) {
+                    binding.buttonEmailUpload.isEnabled = true
+                    storage.saveLastJobAction(currentJob.id, result.message)
+                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                    renderProgress()
+                }
+            }
         }
 
         binding.textPhotoConfig.text = buildConfigText()

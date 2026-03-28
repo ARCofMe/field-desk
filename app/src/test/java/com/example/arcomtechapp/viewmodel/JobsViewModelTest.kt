@@ -2,7 +2,8 @@ package com.example.arcomtechapp.viewmodel
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.example.arcomtechapp.data.models.Job
-import com.example.arcomtechapp.data.repo.BlueFolderRepository
+import com.example.arcomtechapp.data.repo.FieldOpsRepository
+import com.example.arcomtechapp.data.repo.TechnicianActionResult
 import com.example.arcomtechapp.util.getOrAwaitValue
 import io.mockk.every
 import io.mockk.mockk
@@ -21,7 +22,7 @@ class JobsViewModelTest {
 
     @Test
     fun `loadJobs posts data and clears error`() {
-        val repo = mockk<BlueFolderRepository>()
+        val repo = mockk<FieldOpsRepository>()
         val jobs = listOf(
             Job(
                 id = "1",
@@ -33,7 +34,14 @@ class JobsViewModelTest {
                 distanceMiles = 1.0
             )
         )
+        every { repo.testPython() } returns ""
+        every { repo.getAssignmentsForUser(any()) } returns emptyList()
+        every { repo.checkConnection(any(), any()) } returns "ok"
         every { repo.getAllJobs(null, null, "t1", null, null, "scheduled") } returns jobs
+        every { repo.submitJobNote(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+        every { repo.updateJobStatus(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+        every { repo.createPartsRequest(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+        every { repo.preparePhotoUpload(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
 
         val viewModel = JobsViewModel(repo)
         viewModel.loadJobs("t1")
@@ -46,8 +54,15 @@ class JobsViewModelTest {
 
     @Test
     fun `loadJobs failure posts error`() {
-        val repo = mockk<BlueFolderRepository>()
+        val repo = mockk<FieldOpsRepository>()
+        every { repo.testPython() } returns ""
+        every { repo.getAssignmentsForUser(any()) } returns emptyList()
+        every { repo.checkConnection(any(), any()) } returns "ok"
         every { repo.getAllJobs(any(), any(), any(), any(), any(), any()) } throws IllegalStateException("boom")
+        every { repo.submitJobNote(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+        every { repo.updateJobStatus(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+        every { repo.createPartsRequest(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+        every { repo.preparePhotoUpload(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
 
         val viewModel = JobsViewModel(repo)
         viewModel.loadJobs("t1")

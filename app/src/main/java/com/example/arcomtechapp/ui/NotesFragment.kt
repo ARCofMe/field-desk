@@ -6,12 +6,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentNotesBinding
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
 import com.example.arcomtechapp.workflow.JobProgress
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class NotesFragment : Fragment() {
 
@@ -67,10 +72,27 @@ class NotesFragment : Fragment() {
             if (note.isBlank()) {
                 Toast.makeText(requireContext(), "Nothing to send yet", Toast.LENGTH_SHORT).show()
             } else {
-                storage.saveLastJobAction(job?.id, "Prepared note for submission")
-                storage.setJobNotesDraft(job?.id, note)
-                Toast.makeText(requireContext(), "Note prepared for Ops Hub handoff", Toast.LENGTH_SHORT).show()
-                updateDraftStatus()
+                val currentJob = job
+                if (currentJob == null) {
+                    Toast.makeText(requireContext(), "Open notes from a job to sync them", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                binding.buttonSendNote.isEnabled = false
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val result = RepositoryProvider.fromContext(requireContext()).submitJobNote(
+                        storage.getActiveBaseUrl(),
+                        storage.getActiveApiKey(),
+                        currentJob.id,
+                        note
+                    )
+                    withContext(Dispatchers.Main) {
+                        binding.buttonSendNote.isEnabled = true
+                        storage.saveLastJobAction(currentJob.id, result.message)
+                        storage.setJobNotesDraft(currentJob.id, note)
+                        Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                        updateDraftStatus()
+                    }
+                }
             }
         }
     }

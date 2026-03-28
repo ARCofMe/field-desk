@@ -12,6 +12,9 @@ class Storage(context: Context) {
     data class SettingsSnapshot(
         val apiKey: String?,
         val baseUrl: String?,
+        val backendMode: BackendMode,
+        val opsHubBaseUrl: String?,
+        val opsHubApiKey: String?,
         val isAuthenticated: Boolean,
         val autoCompressPhotos: Boolean,
         val technicianName: String?,
@@ -32,6 +35,11 @@ class Storage(context: Context) {
         val lastPhotoLabel: String?
     )
 
+    enum class BackendMode {
+        BLUEFOLDER_DIRECT,
+        OPS_HUB
+    }
+
     fun saveApiKey(key: String?) {
         prefs.edit().apply {
             if (key.isNullOrBlank()) remove(KEY_API_KEY) else putString(KEY_API_KEY, key)
@@ -47,6 +55,42 @@ class Storage(context: Context) {
     }
 
     fun getBaseUrl(): String? = prefs.getString(KEY_BASE_URL, null)
+
+    fun saveOpsHubBaseUrl(url: String?) {
+        prefs.edit().apply {
+            if (url.isNullOrBlank()) remove(KEY_OPS_HUB_BASE_URL) else putString(KEY_OPS_HUB_BASE_URL, url)
+        }.apply()
+    }
+
+    fun getOpsHubBaseUrl(): String? = prefs.getString(KEY_OPS_HUB_BASE_URL, null)
+
+    fun saveOpsHubApiKey(key: String?) {
+        prefs.edit().apply {
+            if (key.isNullOrBlank()) remove(KEY_OPS_HUB_API_KEY) else putString(KEY_OPS_HUB_API_KEY, key)
+        }.apply()
+    }
+
+    fun getOpsHubApiKey(): String? = prefs.getString(KEY_OPS_HUB_API_KEY, null)
+
+    fun setBackendMode(mode: BackendMode) {
+        prefs.edit().putString(KEY_BACKEND_MODE, mode.name).apply()
+    }
+
+    fun getBackendMode(): BackendMode =
+        runCatching { BackendMode.valueOf(prefs.getString(KEY_BACKEND_MODE, BackendMode.BLUEFOLDER_DIRECT.name)!!) }
+            .getOrDefault(BackendMode.BLUEFOLDER_DIRECT)
+
+    fun getActiveBaseUrl(): String? =
+        when (getBackendMode()) {
+            BackendMode.OPS_HUB -> getOpsHubBaseUrl()
+            BackendMode.BLUEFOLDER_DIRECT -> getBaseUrl()
+        }
+
+    fun getActiveApiKey(): String? =
+        when (getBackendMode()) {
+            BackendMode.OPS_HUB -> getOpsHubApiKey()
+            BackendMode.BLUEFOLDER_DIRECT -> getApiKey()
+        }
 
     fun setAuthenticated(isAuthenticated: Boolean) {
         prefs.edit().putBoolean(KEY_IS_AUTH, isAuthenticated).apply()
@@ -178,6 +222,9 @@ class Storage(context: Context) {
     fun getSnapshot(): SettingsSnapshot = SettingsSnapshot(
         apiKey = getApiKey(),
         baseUrl = getBaseUrl(),
+        backendMode = getBackendMode(),
+        opsHubBaseUrl = getOpsHubBaseUrl(),
+        opsHubApiKey = getOpsHubApiKey(),
         isAuthenticated = isAuthenticated(),
         autoCompressPhotos = shouldAutoCompressPhotos(),
         technicianName = getTechnicianName(),
@@ -199,6 +246,9 @@ class Storage(context: Context) {
     private companion object {
         const val KEY_API_KEY = "api_key"
         const val KEY_BASE_URL = "base_url"
+        const val KEY_BACKEND_MODE = "backend_mode"
+        const val KEY_OPS_HUB_BASE_URL = "ops_hub_base_url"
+        const val KEY_OPS_HUB_API_KEY = "ops_hub_api_key"
         const val KEY_IS_AUTH = "is_authenticated"
         const val KEY_AUTO_COMPRESS = "auto_compress"
         const val KEY_TECH_NAME = "tech_name"
