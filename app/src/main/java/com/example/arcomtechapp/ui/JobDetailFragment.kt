@@ -1,15 +1,20 @@
 package com.example.arcomtechapp.ui
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import androidx.fragment.app.Fragment
 import android.widget.Toast
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.models.JobPartsCase
+import com.example.arcomtechapp.data.models.JobPhotoStatus
+import com.example.arcomtechapp.data.models.JobTimelineEntry
 import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentJobDetailBinding
 import com.example.arcomtechapp.storage.Storage
@@ -30,6 +35,9 @@ class JobDetailFragment : Fragment() {
     private lateinit var storage: Storage
     private var launchCallOnOpen: Boolean = false
     private var launchNavigationOnOpen: Boolean = false
+    private var partsCase: JobPartsCase? = null
+    private var photoStatus: JobPhotoStatus? = null
+    private var timeline: List<JobTimelineEntry> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,11 +59,13 @@ class JobDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         job?.let { renderJob(it) }
+        refreshJobContext()
     }
 
     override fun onResume() {
         super.onResume()
         job?.let { renderJob(it) }
+        refreshJobContext()
     }
 
     private fun renderJob(job: Job) {
@@ -76,6 +86,9 @@ class JobDetailFragment : Fragment() {
         binding.textAddress.text = job.address
         binding.textPhone.text = job.customerPhone
         binding.textDistance.text = job.distanceMiles?.let { String.format("%.1f mi away", it) } ?: "N/A"
+        binding.textPartsCase.text = buildPartsCaseText(job)
+        binding.textPhotoCompliance.text = buildPhotoComplianceText()
+        binding.textTimelinePreview.text = buildTimelinePreview()
         binding.textWorkflowHeadline.text = summary.nextStep
         binding.textWorkflowChecklist.text = summary.checklist.joinToString("\n") {
             "${if (it.done) "•" else "○"} ${it.label}"
@@ -114,7 +127,7 @@ class JobDetailFragment : Fragment() {
         binding.buttonWorkflowPhotos.setOnClickListener { openPhotos(job) }
         binding.buttonWorkflowNotes.setOnClickListener { openNotes(job) }
         binding.buttonWorkflowParts.setOnClickListener {
-            performBackendAction(job, "parts", "Parts follow-up requested")
+            promptForPartsRequest(job)
         }
         binding.buttonWorkflowComplete.setOnClickListener {
             handleWorkflowAction(job, "complete")
@@ -126,6 +139,40 @@ class JobDetailFragment : Fragment() {
         } else if (launchNavigationOnOpen) {
             launchNavigationOnOpen = false
             openNavigation(job)
+        }
+    }
+
+    private fun refreshJobContext() {
+        val currentJob = job ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val repo = RepositoryProvider.fromContext(requireContext())
+            val refreshedJob = repo.getJob(
+                storage.getActiveBaseUrl(),
+                storage.getActiveApiKey(),
+                currentJob.id
+            ) ?: currentJob
+            val refreshedPartsCase = repo.getJobPartsCase(
+                storage.getActiveBaseUrl(),
+                storage.getActiveApiKey(),
+                currentJob.id
+            )
+            val refreshedPhotoStatus = repo.getJobPhotoStatus(
+                storage.getActiveBaseUrl(),
+                storage.getActiveApiKey(),
+                currentJob.id
+            )
+            val refreshedTimeline = repo.getJobTimeline(
+                storage.getActiveBaseUrl(),
+                storage.getActiveApiKey(),
+                currentJob.id
+            )
+            withContext(Dispatchers.Main) {
+                job = refreshedJob
+                partsCase = refreshedPartsCase
+                photoStatus = refreshedPhotoStatus
+                timeline = refreshedTimeline
+                renderJob(refreshedJob)
+            }
         }
     }
 
@@ -159,10 +206,14 @@ class JobDetailFragment : Fragment() {
     private fun handleWorkflowAction(job: Job, key: String?) {
         when (key) {
             "call" -> dialCustomer(job)
+            "call_ahead" -> performCallAhead(job)
             "navigate", "next_job" -> openNavigation(job)
             "photos" -> openPhotos(job)
             "notes" -> openNotes(job)
-            "parts", "complete", "arrive", "enroute" -> {
+            "quote_needed" -> promptForQuoteNeeded(job)
+            "reschedule" -> promptForReschedule(job)
+            "parts" -> promptForPartsRequest(job)
+            "complete", "arrive", "enroute" -> {
                 if (key == "complete") {
                     val progress = storage.getLocalJobProgress(job.id)
                     val closeout = JobExecutionAssist.completionSummary(
@@ -182,41 +233,188 @@ class JobDetailFragment : Fragment() {
                     }
                 }
                 val fallbackLabel = when (key) {
-                    "parts" -> "Parts follow-up requested"
                     "complete" -> "Closeout checklist ready"
-                    "arrive" -> "Marked arrived locally"
-                    else -> "Marked en route locally"
+                    "arrive" -> "Marked arrived"
+                    else -> "Marked en route"
                 }
-                performBackendAction(job, key.orEmpty(), fallbackLabel)
+                performStatusAction(job, key.orEmpty(), fallbackLabel)
             }
             else -> Toast.makeText(requireContext(), "More guided actions coming next.", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun performBackendAction(job: Job, actionKey: String, fallbackLabel: String) {
+    private fun performStatusAction(job: Job, actionKey: String, fallbackLabel: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             val repo = RepositoryProvider.fromContext(requireContext())
-            val result = if (actionKey == "parts") {
-                repo.createPartsRequest(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    job.id,
-                    "Requested from mobile technician workflow"
-                )
-            } else {
-                repo.updateJobStatus(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    job.id,
-                    actionKey
-                )
-            }
+            val result = repo.updateJobStatus(
+                storage.getActiveBaseUrl(),
+                storage.getActiveApiKey(),
+                job.id,
+                actionKey
+            )
             withContext(Dispatchers.Main) {
-                val message = if (result.success) result.message else fallbackLabel
+                val message = if (result.message.isNotBlank()) result.message else fallbackLabel
                 storage.saveLastJobAction(job.id, message)
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-                renderJob(job)
+                refreshJobContext()
             }
+        }
+    }
+
+    private fun performCallAhead(job: Job) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val result = RepositoryProvider.fromContext(requireContext()).logCallAhead(
+                storage.getActiveBaseUrl(),
+                storage.getActiveApiKey(),
+                job.id,
+                30
+            )
+            withContext(Dispatchers.Main) {
+                val message = if (result.message.isNotBlank()) result.message else "Call-ahead logged"
+                storage.saveLastJobAction(job.id, message)
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                refreshJobContext()
+                dialCustomer(job)
+            }
+        }
+    }
+
+    private fun promptForPartsRequest(job: Job) {
+        promptForText(
+            title = "Need part",
+            hint = "Part number, symptom, vendor, or other field details"
+        ) { details ->
+            lifecycleScope.launch(Dispatchers.IO) {
+                val result = RepositoryProvider.fromContext(requireContext()).createPartsRequest(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    job.id,
+                    details.ifBlank { "Requested from mobile technician workflow" }
+                )
+                withContext(Dispatchers.Main) {
+                    storage.saveLastJobAction(job.id, result.message)
+                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                    refreshJobContext()
+                }
+            }
+        }
+    }
+
+    private fun promptForQuoteNeeded(job: Job) {
+        promptForText(
+            title = "Quote needed",
+            hint = "Explain what office needs to quote or approve"
+        ) { details ->
+            val subtype = inferQuoteSubtype(details)
+            lifecycleScope.launch(Dispatchers.IO) {
+                val result = RepositoryProvider.fromContext(requireContext()).reportQuoteNeeded(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    job.id,
+                    details,
+                    subtype
+                )
+                withContext(Dispatchers.Main) {
+                    storage.saveLastJobAction(job.id, result.message)
+                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                    refreshJobContext()
+                }
+            }
+        }
+    }
+
+    private fun promptForReschedule(job: Job) {
+        promptForText(
+            title = "Need reschedule",
+            hint = "Why this job needs dispatch follow-up"
+        ) { reason ->
+            lifecycleScope.launch(Dispatchers.IO) {
+                val result = RepositoryProvider.fromContext(requireContext()).reportReschedule(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    job.id,
+                    reason
+                )
+                withContext(Dispatchers.Main) {
+                    storage.saveLastJobAction(job.id, result.message)
+                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                    refreshJobContext()
+                }
+            }
+        }
+    }
+
+    private fun promptForText(title: String, hint: String, onSubmit: (String) -> Unit) {
+        val input = EditText(requireContext()).apply {
+            setHint(hint)
+            minLines = 3
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(title)
+            .setView(input)
+            .setPositiveButton("Submit") { _, _ ->
+                val value = input.text?.toString().orEmpty().trim()
+                if (value.isBlank()) {
+                    Toast.makeText(requireContext(), "Details are required.", Toast.LENGTH_SHORT).show()
+                } else {
+                    onSubmit(value)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun buildPartsCaseText(job: Job): String {
+        val case = partsCase
+        if (case == null) {
+            return buildString {
+                append("Parts: ")
+                append(job.partsStage ?: "No active parts case")
+                job.nextAction?.takeIf { it.isNotBlank() }?.let {
+                    append("\nNext action: $it")
+                }
+            }
+        }
+        return buildString {
+            append("Parts: ${case.stageLabel.ifBlank { case.stage.ifBlank { "No active parts case" } }}")
+            case.blocker?.takeIf { it.isNotBlank() }?.let { append("\nBlocker: $it") }
+            case.latestStatusText?.takeIf { it.isNotBlank() }?.let { append("\nLatest: $it") }
+            case.nextAction?.takeIf { it.isNotBlank() }?.let { append("\nNext action: $it") }
+        }
+    }
+
+    private fun buildPhotoComplianceText(): String {
+        val status = photoStatus ?: return "Photo compliance: live mailbox state not loaded yet."
+        return buildString {
+            append("Photo compliance: ${status.totalPhotos} found")
+            if (status.missingTags.isNotEmpty()) {
+                append("\nMissing: ${status.missingTags.joinToString(", ")}")
+            } else if (status.foundTags.isNotEmpty()) {
+                append("\nTagged: ${status.foundTags.joinToString(", ")}")
+            }
+            if (status.shouldNotify) {
+                append("\nAttention: ${status.reason}")
+            }
+        }
+    }
+
+    private fun buildTimelinePreview(): String {
+        if (timeline.isEmpty()) return "Timeline: waiting for workflow events."
+        return buildString {
+            append("Latest updates:")
+            timeline.take(3).forEach { entry ->
+                append("\n• ${entry.summary}")
+                entry.actorLabel?.takeIf { it.isNotBlank() }?.let { append(" ($it)") }
+            }
+        }
+    }
+
+    private fun inferQuoteSubtype(details: String): String {
+        val normalized = details.lowercase()
+        return when {
+            "landlord" in normalized || "tenant" in normalized -> "landlord"
+            "prepay" in normalized || "pre-payment" in normalized || "cod" in normalized -> "prepayment"
+            else -> "customer"
         }
     }
 

@@ -38,6 +38,27 @@ class JobWorkflowTest {
         assertTrue(summary.quickActions.any { it.key == "enroute" })
     }
 
+    @Test
+    fun summarize_prefers_ops_hub_next_action_and_quote_flow() {
+        val summary = JobWorkflow.summarize(
+            Job(
+                id = "42",
+                address = "123 Main St",
+                appointmentWindow = "PM",
+                customerName = "Jane",
+                customerPhone = "555-0000",
+                status = "Quote Needed",
+                equipment = "Dryer",
+                nextAction = "Office needs landlord approval before scheduling return visit."
+            )
+        )
+
+        assertEquals("Quote follow-up", summary.headline)
+        assertEquals("Office needs landlord approval before scheduling return visit.", summary.nextStep)
+        assertTrue(summary.quickActions.any { it.key == "quote_needed" })
+        assertTrue(summary.checklist.any { it.label == "Ops Hub next step" && it.done })
+    }
+
     private fun job(id: String, status: String): Job {
         return Job(
             id = id,

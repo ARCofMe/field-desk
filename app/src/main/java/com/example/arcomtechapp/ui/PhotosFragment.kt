@@ -11,6 +11,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.models.JobPhotoStatus
 import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentPhotosBinding
 import com.example.arcomtechapp.storage.Storage
@@ -27,6 +28,7 @@ class PhotosFragment : Fragment() {
     private lateinit var storage: Storage
     private var job: Job? = null
     private var selectedPromptIndex: Int = 0
+    private var livePhotoStatus: JobPhotoStatus? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,7 +73,23 @@ class PhotosFragment : Fragment() {
         binding.buttonCamera.setOnClickListener { cameraLauncher.launch(null) }
         binding.buttonGallery.setOnClickListener { galleryLauncher.launch("image/*") }
         binding.buttonOptimize.setOnClickListener {
-            updateStatus("Prepared ${selectedPhotoLabel().lowercase()} package for upload")
+            val currentJob = job
+            if (currentJob == null) {
+                updateStatus("Prepared ${selectedPhotoLabel().lowercase()} package for upload")
+                return@setOnClickListener
+            }
+            lifecycleScope.launch(Dispatchers.IO) {
+                val result = RepositoryProvider.fromContext(requireContext()).evaluatePhotoCompliance(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    currentJob.id,
+                    sendNotice = false
+                )
+                withContext(Dispatchers.Main) {
+                    updateStatus(result.message.ifBlank { "Photo compliance checked" })
+                    refreshPhotoStatus()
+                }
+            }
         }
         binding.buttonEmailUpload.setOnClickListener {
             val currentJob = job
@@ -92,6 +110,7 @@ class PhotosFragment : Fragment() {
                     storage.saveLastJobAction(currentJob.id, result.message)
                     Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
                     renderProgress()
+                    refreshPhotoStatus()
                 }
             }
         }
@@ -101,6 +120,7 @@ class PhotosFragment : Fragment() {
         updatePhotoPromptState()
         renderProgress()
         updateStatus("Ready for guided photo capture")
+        refreshPhotoStatus()
     }
 
     private fun buildConfigText(): String {
@@ -172,11 +192,40 @@ class PhotosFragment : Fragment() {
                 append("\nLast capture: $it")
             }
         }
+        binding.textPhotoCompliance.text = buildPhotoComplianceText()
     }
 
     private fun updateStatus(status: String) {
         binding.textPhotoStatus.isVisible = true
         binding.textPhotoStatus.text = status
+    }
+
+    private fun refreshPhotoStatus() {
+        val currentJob = job ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val status = RepositoryProvider.fromContext(requireContext()).getJobPhotoStatus(
+                storage.getActiveBaseUrl(),
+                storage.getActiveApiKey(),
+                currentJob.id
+            )
+            withContext(Dispatchers.Main) {
+                livePhotoStatus = status
+                renderProgress()
+            }
+        }
+    }
+
+    private fun buildPhotoComplianceText(): String {
+        val status = livePhotoStatus ?: return "Compliance state will appear here after Ops Hub responds."
+        return buildString {
+            append(status.message.ifBlank { "Mailbox status: ${status.mailboxStatus}" })
+            if (status.missingTags.isNotEmpty()) {
+                append("\nMissing tags: ${status.missingTags.joinToString(", ")}")
+            }
+            if (status.foundTags.isNotEmpty()) {
+                append("\nFound tags: ${status.foundTags.joinToString(", ")}")
+            }
+        }
     }
 
     companion object {

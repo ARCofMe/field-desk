@@ -2,6 +2,9 @@ package com.example.arcomtechapp.data.repo
 
 import com.example.arcomtechapp.data.models.Assignment
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.models.JobPartsCase
+import com.example.arcomtechapp.data.models.JobPhotoStatus
+import com.example.arcomtechapp.data.models.JobTimelineEntry
 
 data class TechnicianActionResult(
     val success: Boolean,
@@ -25,4 +28,26 @@ interface FieldOpsRepository {
     fun updateJobStatus(baseUrl: String?, apiKey: String?, jobId: String, statusKey: String): TechnicianActionResult
     fun createPartsRequest(baseUrl: String?, apiKey: String?, jobId: String, details: String): TechnicianActionResult
     fun preparePhotoUpload(baseUrl: String?, apiKey: String?, jobId: String, photoLabel: String): TechnicianActionResult
+    fun getJob(baseUrl: String?, apiKey: String?, jobId: String): Job? = null
+    fun getJobPartsCase(baseUrl: String?, apiKey: String?, jobId: String): JobPartsCase? = null
+    fun getJobTimeline(baseUrl: String?, apiKey: String?, jobId: String): List<JobTimelineEntry> = emptyList()
+    fun getJobPhotoStatus(baseUrl: String?, apiKey: String?, jobId: String): JobPhotoStatus? = null
+    fun logCallAhead(baseUrl: String?, apiKey: String?, jobId: String, minutes: Int = 30): TechnicianActionResult =
+        TechnicianActionResult(false, "Call-ahead flow is not available for this backend")
+    fun reportQuoteNeeded(
+        baseUrl: String?,
+        apiKey: String?,
+        jobId: String,
+        details: String,
+        subtype: String = "customer"
+    ): TechnicianActionResult = TechnicianActionResult(false, "Quote-needed flow is not available for this backend")
+    fun reportReschedule(baseUrl: String?, apiKey: String?, jobId: String, reason: String): TechnicianActionResult =
+        TechnicianActionResult(false, "Reschedule flow is not available for this backend")
+    fun evaluatePhotoCompliance(
+        baseUrl: String?,
+        apiKey: String?,
+        jobId: String,
+        statusOverride: String? = null,
+        sendNotice: Boolean = false
+    ): TechnicianActionResult = TechnicianActionResult(false, "Photo compliance evaluation is not available for this backend")
 }

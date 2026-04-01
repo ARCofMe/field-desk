@@ -2,6 +2,10 @@ package com.example.arcomtechapp.data.repo
 
 import com.example.arcomtechapp.data.models.Assignment
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.models.JobPartsCase
+import com.example.arcomtechapp.data.models.JobPhotoRecord
+import com.example.arcomtechapp.data.models.JobPhotoStatus
+import com.example.arcomtechapp.data.models.JobTimelineEntry
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -62,6 +66,128 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
     override fun preparePhotoUpload(baseUrl: String?, apiKey: String?, jobId: String, photoLabel: String): TechnicianActionResult =
         postAction(baseUrl, apiKey, "/tech/jobs/$jobId/photos/prepare", JSONObject().put("label", photoLabel))
 
+    override fun getJob(baseUrl: String?, apiKey: String?, jobId: String): Job? {
+        return try {
+            parseJob(JSONObject(request("GET", baseUrl, apiKey, "/tech/jobs/$jobId")))
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    override fun getJobPartsCase(baseUrl: String?, apiKey: String?, jobId: String): JobPartsCase? {
+        return try {
+            val obj = JSONObject(request("GET", baseUrl, apiKey, "/tech/jobs/$jobId/parts"))
+            JobPartsCase(
+                reference = obj.optString("reference"),
+                stage = obj.optString("stage"),
+                stageLabel = obj.optString("stageLabel"),
+                status = obj.optString("status"),
+                openRequestIds = buildList {
+                    val items = obj.optJSONArray("openRequestIds") ?: JSONArray()
+                    for (i in 0 until items.length()) {
+                        if (!items.isNull(i)) add(items.optInt(i))
+                    }
+                },
+                assignedPartsUserId = obj.optInt("assignedPartsUserId").takeIf { it > 0 },
+                blocker = obj.optString("blocker").takeIf { it.isNotBlank() },
+                latestStatusText = obj.optString("latestStatusText").takeIf { it.isNotBlank() },
+                latestIssueText = obj.optString("latestIssueText").takeIf { it.isNotBlank() },
+                nextAction = obj.optString("nextAction").takeIf { it.isNotBlank() },
+                updatedAt = obj.optString("updatedAt").takeIf { it.isNotBlank() }
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    override fun getJobTimeline(baseUrl: String?, apiKey: String?, jobId: String): List<JobTimelineEntry> {
+        return try {
+            val items = JSONArray(request("GET", baseUrl, apiKey, "/tech/jobs/$jobId/timeline"))
+            buildList {
+                for (i in 0 until items.length()) {
+                    val obj = items.getJSONObject(i)
+                    add(
+                        JobTimelineEntry(
+                            occurredAt = obj.optString("occurredAt"),
+                            source = obj.optString("source"),
+                            eventType = obj.optString("eventType"),
+                            summary = obj.optString("summary"),
+                            details = obj.optString("details").takeIf { it.isNotBlank() },
+                            actorLabel = obj.optString("actorLabel").takeIf { it.isNotBlank() }
+                        )
+                    )
+                }
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    override fun getJobPhotoStatus(baseUrl: String?, apiKey: String?, jobId: String): JobPhotoStatus? {
+        return try {
+            val obj = JSONObject(request("GET", baseUrl, apiKey, "/tech/jobs/$jobId/photos"))
+            JobPhotoStatus(
+                enabled = obj.optBoolean("enabled"),
+                srId = obj.opt("srId")?.toString().orEmpty(),
+                mailboxStatus = obj.optString("mailboxStatus"),
+                message = obj.optString("message"),
+                totalPhotos = obj.optInt("totalPhotos"),
+                foundTags = jsonArrayStrings(obj.optJSONArray("foundTags")),
+                missingTags = jsonArrayStrings(obj.optJSONArray("missingTags")),
+                records = buildList {
+                    val items = obj.optJSONArray("records") ?: JSONArray()
+                    for (i in 0 until items.length()) {
+                        val record = items.getJSONObject(i)
+                        add(
+                            JobPhotoRecord(
+                                subject = record.optString("subject"),
+                                fromEmail = record.optString("fromEmail"),
+                                receivedAt = record.optString("receivedAt"),
+                                attachmentCount = record.optInt("attachmentCount"),
+                                attachmentNames = jsonArrayStrings(record.optJSONArray("attachmentNames"))
+                            )
+                        )
+                    }
+                },
+                shouldNotify = obj.optBoolean("shouldNotify"),
+                reason = obj.optString("reason")
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    override fun logCallAhead(baseUrl: String?, apiKey: String?, jobId: String, minutes: Int): TechnicianActionResult =
+        postAction(baseUrl, apiKey, "/tech/jobs/$jobId/call_ahead", JSONObject().put("minutes", minutes))
+
+    override fun reportQuoteNeeded(
+        baseUrl: String?,
+        apiKey: String?,
+        jobId: String,
+        details: String,
+        subtype: String
+    ): TechnicianActionResult = postAction(
+        baseUrl,
+        apiKey,
+        "/tech/jobs/$jobId/quote_needed",
+        JSONObject().put("details", details).put("subtype", subtype)
+    )
+
+    override fun reportReschedule(baseUrl: String?, apiKey: String?, jobId: String, reason: String): TechnicianActionResult =
+        postAction(baseUrl, apiKey, "/tech/jobs/$jobId/reschedule", JSONObject().put("reason", reason))
+
+    override fun evaluatePhotoCompliance(
+        baseUrl: String?,
+        apiKey: String?,
+        jobId: String,
+        statusOverride: String?,
+        sendNotice: Boolean
+    ): TechnicianActionResult {
+        val payload = JSONObject().put("sendNotice", sendNotice)
+        statusOverride?.takeIf { it.isNotBlank() }?.let { payload.put("statusOverride", it) }
+        return postAction(baseUrl, apiKey, "/tech/jobs/$jobId/photo_compliance", payload)
+    }
+
     private fun buildPath(
         basePath: String,
         techId: String? = null,
@@ -85,18 +211,32 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
             for (i in 0 until items.length()) {
                 val obj = items.getJSONObject(i)
                 add(
-                    Job(
-                        id = obj.optString("id"),
-                        address = obj.optString("address"),
-                        appointmentWindow = obj.optString("appointmentWindow"),
-                        customerName = obj.optString("customerName"),
-                        customerPhone = obj.optString("customerPhone"),
-                        status = obj.optString("status"),
-                        distanceMiles = obj.takeIf { !it.isNull("distanceMiles") }?.optDouble("distanceMiles"),
-                        equipment = obj.takeIf { it.has("equipment") && !it.isNull("equipment") }?.optString("equipment")
-                    )
+                    parseJob(obj)
                 )
             }
+        }
+    }
+
+    private fun parseJob(obj: JSONObject): Job {
+        return Job(
+            id = obj.optString("id"),
+            address = obj.optString("address"),
+            appointmentWindow = obj.optString("appointmentWindow"),
+            customerName = obj.optString("customerName"),
+            customerPhone = obj.optString("customerPhone"),
+            status = obj.optString("status"),
+            distanceMiles = obj.takeIf { !it.isNull("distanceMiles") }?.optDouble("distanceMiles"),
+            equipment = obj.takeIf { it.has("equipment") && !it.isNull("equipment") }?.optString("equipment"),
+            partsStage = obj.optString("partsStage").takeIf { it.isNotBlank() },
+            nextAction = obj.optString("nextAction").takeIf { it.isNotBlank() }
+        )
+    }
+
+    private fun jsonArrayStrings(items: JSONArray?): List<String> = buildList {
+        val safeItems = items ?: JSONArray()
+        for (i in 0 until safeItems.length()) {
+            val value = safeItems.optString(i)
+            if (value.isNotBlank()) add(value)
         }
     }
 

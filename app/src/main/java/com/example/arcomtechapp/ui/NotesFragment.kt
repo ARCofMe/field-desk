@@ -103,6 +103,8 @@ class NotesFragment : Fragment() {
             parts += "Job #${it.id}"
             if (it.customerName.isNotBlank()) parts += it.customerName
             if (!it.equipment.isNullOrBlank()) parts += it.equipment
+            it.partsStage?.takeIf { stage -> stage.isNotBlank() }?.let { stage -> parts += "Parts: $stage" }
+            it.nextAction?.takeIf { action -> action.isNotBlank() }?.let { action -> parts += "Next: $action" }
         }
         parts += storage.getTechnicianName()?.ifBlank { "Technician" } ?: "Technician"
         storage.getTechnicianId()?.let { if (it.isNotBlank()) parts += "ID: $it" }

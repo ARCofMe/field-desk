@@ -51,6 +51,30 @@
             android:layout_marginTop="2dp"
             android:text="Distance" />
 
+        <TextView
+            android:id="@+id/text_parts_case"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Parts case"
+            android:textColor="@color/brand_subtle_text" />
+
+        <TextView
+            android:id="@+id/text_photo_compliance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Photo compliance"
+            android:textColor="@color/brand_subtle_text" />
+
+        <TextView
+            android:id="@+id/text_timeline_preview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Timeline"
+            android:textColor="@color/brand_subtle_text" />
+
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

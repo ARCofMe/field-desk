@@ -13,9 +13,13 @@ import androidx.fragment.app.viewModels
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.data.repo.RepositoryProvider
+import androidx.lifecycle.lifecycleScope
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.viewmodel.TechnicianDashboardViewModel
 import com.example.arcomtechapp.workflow.JobWorkflow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class TodayFragment : Fragment() {
 
@@ -111,7 +115,7 @@ class TodayFragment : Fragment() {
 
     private fun handleQuickAction(job: Job, actionKey: String?) {
         when (actionKey) {
-            "call" -> openJob(job, launchCall = true)
+            "call", "call_ahead" -> openJob(job, launchCall = true)
             "navigate", "next_job" -> openJob(job, launchNavigation = true)
             "notes" -> {
                 storage.saveLastJobAction(job.id, "Opened guided note")
@@ -127,18 +131,25 @@ class TodayFragment : Fragment() {
                     .addToBackStack(null)
                     .commit()
             }
-            "parts", "complete", "arrive", "enroute" -> {
-                val label = when (actionKey) {
-                    "parts" -> "Flagged parts workflow"
-                    "complete" -> "Prepared closeout flow"
-                    "arrive" -> "Marked arrival locally"
-                    else -> "Marked en route locally"
-                }
-                storage.saveLastJobAction(job.id, label)
-                Toast.makeText(requireContext(), "$label. Wire this to Ops Hub next.", Toast.LENGTH_SHORT).show()
-                renderToday(viewModel.todayJobs.value.orEmpty())
-            }
+            "parts", "quote_needed", "reschedule", "complete" -> openJob(job)
+            "arrive", "enroute" -> performQuickStatusAction(job, actionKey)
             else -> openJob(job)
+        }
+    }
+
+    private fun performQuickStatusAction(job: Job, actionKey: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val result = RepositoryProvider.fromContext(requireContext()).updateJobStatus(
+                storage.getActiveBaseUrl(),
+                storage.getActiveApiKey(),
+                job.id,
+                actionKey
+            )
+            withContext(Dispatchers.Main) {
+                storage.saveLastJobAction(job.id, result.message)
+                Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                viewModel.loadDashboard(storage.getTechnicianId(), storage.getActiveBaseUrl(), storage.getActiveApiKey())
+            }
         }
     }
 
