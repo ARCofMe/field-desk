@@ -39,10 +39,12 @@ class NotesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.textNotesMeta.text = buildMeta()
+        binding.textNoteGuidance.text = buildNoteGuidance()
         binding.textTemplateOne.setOnClickListener { appendTemplate(0) }
         binding.textTemplateTwo.setOnClickListener { appendTemplate(1) }
         binding.textTemplateThree.setOnClickListener { appendTemplate(2) }
         binding.textTemplateFour.setOnClickListener { appendTemplate(3) }
+        applyTemplateLabels()
         binding.inputNote.setText(storage.getJobNotesDraft(job?.id).orEmpty())
         updateDraftStatus()
 
@@ -122,7 +124,9 @@ class NotesFragment : Fragment() {
                 JobProgress(
                     noteDraftLength = draft?.length ?: 0,
                     photoCount = progress.photoCount,
-                    lastPhotoLabel = progress.lastPhotoLabel
+                    lastPhotoLabel = progress.lastPhotoLabel,
+                    finalOutcome = progress.finalOutcome,
+                    finalOutcomeNote = progress.finalOutcomeNote
                 )
             )
         }
@@ -142,19 +146,35 @@ class NotesFragment : Fragment() {
         }
     }
 
+    private fun buildNoteGuidance(): String {
+        val currentJob = job ?: return "Use the note blocks to capture the field story cleanly."
+        val progress = storage.getLocalJobProgress(currentJob.id)
+        return JobExecutionAssist.noteGuidance(currentJob, progress.finalOutcome)
+    }
+
+    private fun applyTemplateLabels() {
+        val templates = templateSet()
+        binding.textTemplateOne.text = templates.getOrNull(0)?.label ?: "Arrival"
+        binding.textTemplateTwo.text = templates.getOrNull(1)?.label ?: "Diagnosis"
+        binding.textTemplateThree.text = templates.getOrNull(2)?.label ?: "Parts"
+        binding.textTemplateFour.text = templates.getOrNull(3)?.label ?: "Closeout"
+    }
+
+    private fun templateSet() = JobExecutionAssist.noteTemplates(
+        job ?: Job(
+            id = "local",
+            address = "",
+            appointmentWindow = "",
+            customerName = "Customer",
+            customerPhone = "",
+            status = "Pending",
+            distanceMiles = null,
+            equipment = null
+        )
+    )
+
     private fun appendTemplate(index: Int) {
-        val template = JobExecutionAssist.noteTemplates(
-            job ?: Job(
-                id = "local",
-                address = "",
-                appointmentWindow = "",
-                customerName = "Customer",
-                customerPhone = "",
-                status = "Pending",
-                distanceMiles = null,
-                equipment = null
-            )
-        ).getOrNull(index) ?: return
+        val template = templateSet().getOrNull(index) ?: return
         val current = binding.inputNote.text?.toString().orEmpty().trim()
         val updated = if (current.contains(template.body)) {
             current
@@ -163,6 +183,7 @@ class NotesFragment : Fragment() {
         }
         binding.inputNote.setText(updated)
         binding.inputNote.setSelection(updated.length)
+        binding.textNoteGuidance.text = buildNoteGuidance()
         updateDraftStatus()
     }
 

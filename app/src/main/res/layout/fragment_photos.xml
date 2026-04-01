@@ -66,6 +66,14 @@
             android:text="Prompt"
             android:textColor="@color/brand_subtle_text" />
 
+        <TextView
+            android:id="@+id/text_photo_checklist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Checklist"
+            android:textColor="@color/brand_subtle_text" />
+
         <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/switch_inline_compress"
             android:layout_width="match_parent"

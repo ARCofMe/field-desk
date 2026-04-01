@@ -31,8 +31,20 @@ data class JobCompletionSummary(
 
 object JobExecutionAssist {
 
+    private fun statusContext(job: Job): String = buildString {
+        append(job.status)
+        job.nextAction?.takeIf { it.isNotBlank() }?.let { append(" $it") }
+    }.lowercase()
+
+    private fun isProofOfVisitJob(job: Job): Boolean {
+        val statusText = statusContext(job)
+        return statusText.contains("not home") || statusText.contains("no-answer") || statusText.contains("no answer")
+    }
+
     fun noteTemplates(job: Job): List<NoteTemplate> {
         val equipment = job.equipment?.takeIf { it.isNotBlank() } ?: "unit"
+        val proofOfVisit = isProofOfVisitJob(job)
+        val quoteNeeded = statusContext(job).contains("quote")
         return listOf(
             NoteTemplate(
                 key = "arrival",
@@ -45,25 +57,31 @@ object JobExecutionAssist {
                 body = "Diagnosed the $equipment. Verified symptoms, inspected major components, and documented the current operating condition."
             ),
             NoteTemplate(
-                key = "parts",
-                label = "Parts",
-                body = "Parts follow-up needed. Identified required components, documented fitment details, and flagged the job for return scheduling."
+                key = if (proofOfVisit) "proof" else "parts",
+                label = if (proofOfVisit) "Proof of visit" else "Parts",
+                body = if (proofOfVisit) {
+                    "Proof of visit captured. Documented house or unit location, access condition, and what was observed on arrival."
+                } else {
+                    "Parts follow-up needed. Identified required components, documented fitment details, and flagged the job for return scheduling."
+                }
             ),
             NoteTemplate(
-                key = "closeout",
-                label = "Closeout",
-                body = "Work completed. Operation was verified with the customer, notes were reviewed, and supporting photos were captured."
+                key = if (proofOfVisit) "dispatch_handoff" else if (quoteNeeded) "quote_handoff" else "closeout",
+                label = if (proofOfVisit) "Dispatch handoff" else if (quoteNeeded) "Quote handoff" else "Closeout",
+                body = if (proofOfVisit) {
+                    "Dispatch follow-up needed. Customer was not available for service, proof photos were captured, and the stop needs office review."
+                } else if (quoteNeeded) {
+                    "Office quote follow-up needed. Captured the field findings, customer-facing pricing context, and what approval is required before return scheduling."
+                } else {
+                    "Work completed. Operation was verified with the customer, notes were reviewed, and supporting photos were captured."
+                }
             )
         )
     }
 
     fun photoPrompts(job: Job): List<PhotoPrompt> {
-        val statusText = buildString {
-            append(job.status)
-            job.nextAction?.takeIf { it.isNotBlank() }?.let { append(" $it") }
-        }.lowercase()
         val equipment = job.equipment?.takeIf { it.isNotBlank() } ?: "equipment"
-        val proofOfVisit = statusText.contains("not home") || statusText.contains("no-answer") || statusText.contains("no answer")
+        val proofOfVisit = isProofOfVisitJob(job)
         return listOf(
             PhotoPrompt("mdlsn", "Model / serial", "Get the rating plate on the $equipment."),
             PhotoPrompt(
@@ -85,6 +103,34 @@ object JobExecutionAssist {
                 }
             )
         )
+    }
+
+    fun noteGuidance(job: Job, finalOutcome: String? = null): String {
+        val proofOfVisit = isProofOfVisitJob(job)
+        val outcome = finalOutcome?.lowercase()
+        return when {
+            outcome == "unable_to_complete" -> "Focus the note on what blocked completion, what was verified on site, and what office or dispatch needs next."
+            proofOfVisit -> "Write a proof-of-visit note: where you went, what access condition you found, and which photos support the missed stop."
+            statusContext(job).contains("quote") -> "Write the note so office can quote or get approval without re-calling you for missing context."
+            else -> "Write the note so the next person can understand the diagnosis, work performed, and any follow-up without reading comment soup."
+        }
+    }
+
+    fun photoChecklist(job: Job, photoCount: Int, lastPhotoLabel: String? = null): List<String> {
+        val prompts = photoPrompts(job).map { it.label }
+        return buildList {
+            add("Required set: ${prompts.joinToString(", ")}")
+            if (isProofOfVisitJob(job)) {
+                add("Proof-of-visit job: make sure the house or access condition is visible.")
+            }
+            add(
+                if (photoCount > 0) {
+                    "Captured so far: $photoCount${lastPhotoLabel?.let { " (last: $it)" } ?: ""}"
+                } else {
+                    "No required photos captured yet."
+                }
+            )
+        }
     }
 
     fun completionSummary(job: Job, progress: JobProgress): JobCompletionSummary {

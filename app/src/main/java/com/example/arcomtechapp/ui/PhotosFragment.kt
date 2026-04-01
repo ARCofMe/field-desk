@@ -157,6 +157,21 @@ class PhotosFragment : Fragment() {
         binding.buttonPhotoTypeTwo.text = prompts.getOrNull(1)?.label ?: "Support"
         binding.buttonPhotoTypeThree.text = prompts.getOrNull(2)?.label ?: "Issue"
         binding.textPhotoPrompt.text = prompts.getOrNull(selectedPromptIndex)?.helper ?: "Capture supporting field photos."
+        val progress = storage.getLocalJobProgress(job?.id)
+        binding.textPhotoChecklist.text = JobExecutionAssist.photoChecklist(
+            job ?: Job(
+                id = "local",
+                address = "",
+                appointmentWindow = "",
+                customerName = "Customer",
+                customerPhone = "",
+                status = "Pending",
+                distanceMiles = null,
+                equipment = null
+            ),
+            progress.photoCount,
+            progress.lastPhotoLabel
+        ).joinToString("\n") { "• $it" }
     }
 
     private fun currentPrompts() = JobExecutionAssist.photoPrompts(

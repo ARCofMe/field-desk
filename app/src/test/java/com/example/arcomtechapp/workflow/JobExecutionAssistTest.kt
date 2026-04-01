@@ -76,4 +76,31 @@ class JobExecutionAssistTest {
         assertEquals(4, templates.size)
         assertTrue(templates.first().body.contains("Arrived on site"))
     }
+
+    @Test
+    fun `note templates pivot to proof of visit for not home jobs`() {
+        val templates = JobExecutionAssist.noteTemplates(sampleJob.copy(status = "Not home"))
+
+        assertEquals("Proof of visit", templates[2].label)
+        assertEquals("Dispatch handoff", templates[3].label)
+    }
+
+    @Test
+    fun `note guidance reflects unable to complete outcome`() {
+        val guidance = JobExecutionAssist.noteGuidance(sampleJob, "unable_to_complete")
+
+        assertTrue(guidance.contains("blocked completion"))
+    }
+
+    @Test
+    fun `photo checklist calls out proof of visit jobs`() {
+        val checklist = JobExecutionAssist.photoChecklist(
+            sampleJob.copy(status = "No answer"),
+            photoCount = 1,
+            lastPhotoLabel = "House / location"
+        )
+
+        assertTrue(checklist.any { it.contains("Proof-of-visit") })
+        assertTrue(checklist.any { it.contains("House / location") })
+    }
 }
