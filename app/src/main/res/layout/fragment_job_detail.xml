@@ -102,13 +102,21 @@
                     android:text="Checklist"
                     android:textColor="@color/brand_subtle_text" />
 
-                <TextView
-                    android:id="@+id/text_local_progress"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="Local progress"
-                    android:textColor="@color/brand_subtle_text" />
+        <TextView
+            android:id="@+id/text_local_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Local progress"
+            android:textColor="@color/brand_subtle_text" />
+
+        <TextView
+            android:id="@+id/text_closeout_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Closeout status"
+            android:textColor="@color/brand_subtle_text" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -221,7 +229,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:text="Close job" />
+                android:text="Closeout" />
         </LinearLayout>
 
         <TextView

@@ -32,7 +32,9 @@ class Storage(context: Context) {
     data class LocalJobProgress(
         val noteDraft: String?,
         val photoCount: Int,
-        val lastPhotoLabel: String?
+        val lastPhotoLabel: String?,
+        val finalOutcome: String?,
+        val finalOutcomeNote: String?
     )
 
     enum class BackendMode {
@@ -216,8 +218,36 @@ class Storage(context: Context) {
     fun getLocalJobProgress(jobId: String?): LocalJobProgress = LocalJobProgress(
         noteDraft = getJobNotesDraft(jobId),
         photoCount = getJobPhotoCount(jobId),
-        lastPhotoLabel = getJobLastPhotoLabel(jobId)
+        lastPhotoLabel = getJobLastPhotoLabel(jobId),
+        finalOutcome = getJobFinalOutcome(jobId),
+        finalOutcomeNote = getJobFinalOutcomeNote(jobId)
     )
+
+    fun setJobFinalOutcome(jobId: String?, outcome: String?, note: String? = null) {
+        if (jobId.isNullOrBlank()) return
+        prefs.edit().apply {
+            if (outcome.isNullOrBlank()) remove(jobFinalOutcomeKey(jobId)) else putString(jobFinalOutcomeKey(jobId), outcome)
+            if (note.isNullOrBlank()) remove(jobFinalOutcomeNoteKey(jobId)) else putString(jobFinalOutcomeNoteKey(jobId), note)
+        }.apply()
+    }
+
+    fun clearJobFinalOutcome(jobId: String?) {
+        if (jobId.isNullOrBlank()) return
+        prefs.edit()
+            .remove(jobFinalOutcomeKey(jobId))
+            .remove(jobFinalOutcomeNoteKey(jobId))
+            .apply()
+    }
+
+    fun getJobFinalOutcome(jobId: String?): String? {
+        if (jobId.isNullOrBlank()) return null
+        return prefs.getString(jobFinalOutcomeKey(jobId), null)
+    }
+
+    fun getJobFinalOutcomeNote(jobId: String?): String? {
+        if (jobId.isNullOrBlank()) return null
+        return prefs.getString(jobFinalOutcomeNoteKey(jobId), null)
+    }
 
     fun getSnapshot(): SettingsSnapshot = SettingsSnapshot(
         apiKey = getApiKey(),
@@ -268,4 +298,8 @@ class Storage(context: Context) {
     private fun jobPhotoCountKey(jobId: String): String = "job_photo_count_$jobId"
 
     private fun jobPhotoLabelKey(jobId: String): String = "job_photo_label_$jobId"
+
+    private fun jobFinalOutcomeKey(jobId: String): String = "job_final_outcome_$jobId"
+
+    private fun jobFinalOutcomeNoteKey(jobId: String): String = "job_final_outcome_note_$jobId"
 }

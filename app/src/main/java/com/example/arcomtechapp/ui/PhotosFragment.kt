@@ -225,6 +225,10 @@ class PhotosFragment : Fragment() {
             if (status.foundTags.isNotEmpty()) {
                 append("\nFound tags: ${status.foundTags.joinToString(", ")}")
             }
+            val prompts = currentPrompts().map { it.label }
+            if (prompts.isNotEmpty()) {
+                append("\nSuggested set: ${prompts.joinToString(", ")}")
+            }
         }
     }
 

@@ -31,12 +31,42 @@ class JobExecutionAssistTest {
     @Test
     fun `completion summary becomes ready for completed job with note and photo`() {
         val summary = JobExecutionAssist.completionSummary(
-            sampleJob.copy(status = "Completed"),
-            JobProgress(noteDraftLength = 80, photoCount = 2, lastPhotoLabel = "Overview")
+            sampleJob,
+            JobProgress(
+                noteDraftLength = 80,
+                photoCount = 2,
+                lastPhotoLabel = "Overview",
+                finalOutcome = "completed",
+                finalOutcomeNote = "Operation verified."
+            )
         )
 
         assertTrue(summary.ready)
         assertTrue(summary.blockers.isEmpty())
+    }
+
+    @Test
+    fun `completion summary requires reason when unable to complete`() {
+        val summary = JobExecutionAssist.completionSummary(
+            sampleJob,
+            JobProgress(
+                noteDraftLength = 80,
+                photoCount = 2,
+                finalOutcome = "unable_to_complete",
+                finalOutcomeNote = "short"
+            )
+        )
+
+        assertFalse(summary.ready)
+        assertTrue(summary.blockers.any { it.contains("could not be completed") })
+    }
+
+    @Test
+    fun `photo prompts pivot to proof of visit context for not home jobs`() {
+        val prompts = JobExecutionAssist.photoPrompts(sampleJob.copy(status = "Not home"))
+
+        assertEquals("House / location", prompts[1].label)
+        assertEquals("Door / access", prompts[2].label)
     }
 
     @Test

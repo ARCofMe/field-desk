@@ -56,4 +56,6 @@ interface FieldOpsRepository {
         TechnicianActionResult(false, "No-answer flow is not available for this backend")
     fun reportNotHome(baseUrl: String?, apiKey: String?, jobId: String, details: String): TechnicianActionResult =
         TechnicianActionResult(false, "Not-home flow is not available for this backend")
+    fun reportUnableToComplete(baseUrl: String?, apiKey: String?, jobId: String, reason: String): TechnicianActionResult =
+        TechnicianActionResult(false, "Unable-to-complete flow is not available for this backend")
 }

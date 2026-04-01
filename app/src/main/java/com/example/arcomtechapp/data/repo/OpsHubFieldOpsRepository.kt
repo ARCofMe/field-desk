@@ -200,6 +200,9 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
     override fun reportNotHome(baseUrl: String?, apiKey: String?, jobId: String, details: String): TechnicianActionResult =
         postAction(baseUrl, apiKey, "/tech/jobs/$jobId/not_home", JSONObject().put("details", details))
 
+    override fun reportUnableToComplete(baseUrl: String?, apiKey: String?, jobId: String, reason: String): TechnicianActionResult =
+        postAction(baseUrl, apiKey, "/tech/jobs/$jobId/unable_to_complete", JSONObject().put("reason", reason))
+
     private fun buildPath(
         basePath: String,
         techId: String? = null,

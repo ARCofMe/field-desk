@@ -112,6 +112,15 @@ class JobDetailFragment : Fragment() {
                 append(closeout.blockers.joinToString("\n") { "○ $it" })
             }
         }
+        binding.textCloseoutStatus.text = buildString {
+            append("Outcome: ${progress.finalOutcome?.replace('_', ' ') ?: "not chosen"}")
+            progress.finalOutcomeNote?.takeIf { it.isNotBlank() }?.let {
+                append("\nReason: $it")
+            }
+            if (closeout.requiredPhotoLabels.isNotEmpty()) {
+                append("\nRequired photos: ${closeout.requiredPhotoLabels.joinToString(", ")}")
+            }
+        }
         binding.buttonPrimaryWorkflow.text = summary.quickActions.firstOrNull()?.label ?: "Open workflow"
         binding.buttonSecondaryWorkflow.text = summary.quickActions.getOrNull(1)?.label ?: "More actions"
 
@@ -130,7 +139,7 @@ class JobDetailFragment : Fragment() {
             promptForPartsRequest(job)
         }
         binding.buttonWorkflowComplete.setOnClickListener {
-            handleWorkflowAction(job, "complete")
+            promptForCloseout(job)
         }
         binding.buttonWorkflowStart.setOnClickListener { promptForWorkStart(job) }
         binding.buttonWorkflowNoAnswer.setOnClickListener { promptForNoAnswer(job) }
@@ -219,27 +228,9 @@ class JobDetailFragment : Fragment() {
             "quote_needed" -> promptForQuoteNeeded(job)
             "reschedule" -> promptForReschedule(job)
             "parts" -> promptForPartsRequest(job)
-            "complete", "arrive", "enroute" -> {
-                if (key == "complete") {
-                    val progress = storage.getLocalJobProgress(job.id)
-                    val closeout = JobExecutionAssist.completionSummary(
-                        job,
-                        JobProgress(
-                            noteDraftLength = progress.noteDraft?.length ?: 0,
-                            photoCount = progress.photoCount,
-                            lastPhotoLabel = progress.lastPhotoLabel
-                        )
-                    )
-                    if (!closeout.ready) {
-                        val blocker = closeout.blockers.firstOrNull() ?: closeout.headline
-                        storage.saveLastJobAction(job.id, blocker)
-                        Toast.makeText(requireContext(), blocker, Toast.LENGTH_SHORT).show()
-                        renderJob(job)
-                        return
-                    }
-                }
+            "complete" -> promptForCloseout(job)
+            "arrive", "enroute" -> {
                 val fallbackLabel = when (key) {
-                    "complete" -> "Closeout checklist ready"
                     "arrive" -> "Marked arrived"
                     else -> "Marked en route"
                 }
@@ -301,6 +292,7 @@ class JobDetailFragment : Fragment() {
                     details
                 )
                 withContext(Dispatchers.Main) {
+                    storage.setJobFinalOutcome(job.id, "unable_to_complete", details)
                     storage.saveLastJobAction(job.id, result.message)
                     Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
                     refreshJobContext()
@@ -322,6 +314,77 @@ class JobDetailFragment : Fragment() {
                     details
                 )
                 withContext(Dispatchers.Main) {
+                    storage.setJobFinalOutcome(job.id, "unable_to_complete", details)
+                    storage.saveLastJobAction(job.id, result.message)
+                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                    refreshJobContext()
+                }
+            }
+        }
+    }
+
+    private fun promptForCloseout(job: Job) {
+        val options = arrayOf("Completed", "Unable to complete")
+        AlertDialog.Builder(requireContext())
+            .setTitle("Final outcome")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> completeJob(job)
+                    1 -> promptForUnableToComplete(job)
+                }
+            }
+            .show()
+    }
+
+    private fun completeJob(job: Job) {
+        val progress = storage.getLocalJobProgress(job.id)
+        storage.setJobFinalOutcome(job.id, "completed", progress.noteDraft)
+        val closeout = JobExecutionAssist.completionSummary(
+            job,
+            JobProgress(
+                noteDraftLength = progress.noteDraft?.length ?: 0,
+                photoCount = progress.photoCount,
+                lastPhotoLabel = progress.lastPhotoLabel,
+                finalOutcome = storage.getJobFinalOutcome(job.id),
+                finalOutcomeNote = storage.getJobFinalOutcomeNote(job.id)
+            )
+        )
+        if (!closeout.ready) {
+            val blocker = closeout.blockers.firstOrNull() ?: closeout.headline
+            storage.saveLastJobAction(job.id, blocker)
+            Toast.makeText(requireContext(), blocker, Toast.LENGTH_SHORT).show()
+            renderJob(job)
+            return
+        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            val result = RepositoryProvider.fromContext(requireContext()).updateJobStatus(
+                storage.getActiveBaseUrl(),
+                storage.getActiveApiKey(),
+                job.id,
+                "complete"
+            )
+            withContext(Dispatchers.Main) {
+                storage.saveLastJobAction(job.id, result.message)
+                Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                refreshJobContext()
+            }
+        }
+    }
+
+    private fun promptForUnableToComplete(job: Job) {
+        promptForText(
+            title = "Unable to complete",
+            hint = "Explain what blocked closeout or completion"
+        ) { reason ->
+            lifecycleScope.launch(Dispatchers.IO) {
+                val result = RepositoryProvider.fromContext(requireContext()).reportUnableToComplete(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    job.id,
+                    reason
+                )
+                withContext(Dispatchers.Main) {
+                    storage.setJobFinalOutcome(job.id, "unable_to_complete", reason)
                     storage.saveLastJobAction(job.id, result.message)
                     Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
                     refreshJobContext()
