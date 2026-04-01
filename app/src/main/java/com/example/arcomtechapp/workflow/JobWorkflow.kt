@@ -37,6 +37,7 @@ object JobWorkflow {
         val quoteNeeded = normalizedStatus.contains("quote")
         val inRoute = normalizedStatus.contains("route") || normalizedStatus.contains("travel")
         val onsite = normalizedStatus.contains("progress") || normalizedStatus.contains("start") || normalizedStatus.contains("onsite")
+        val started = normalizedStatus.contains("start")
         val isWaitingParts = normalizedPartsStage.contains("waiting")
         val isReadyToSchedule = normalizedPartsStage.contains("ready")
 
@@ -80,7 +81,7 @@ object JobWorkflow {
                 WorkflowQuickAction("notes", "Parts note")
             )
             onsite -> listOf(
-                WorkflowQuickAction("call", "Call customer"),
+                WorkflowQuickAction("start", if (started) "Work started" else "Start work"),
                 WorkflowQuickAction("photos", "Take photos"),
                 WorkflowQuickAction("notes", "Guided note"),
                 WorkflowQuickAction("complete", "Close job")
@@ -89,13 +90,13 @@ object JobWorkflow {
                 WorkflowQuickAction("navigate", "Navigate"),
                 WorkflowQuickAction("call_ahead", "Call ahead"),
                 WorkflowQuickAction("arrive", "Arrived"),
-                WorkflowQuickAction("quote_needed", "Quote / issue")
+                WorkflowQuickAction("not_home", "Not home")
             )
             else -> listOf(
                 WorkflowQuickAction("navigate", "Navigate"),
                 WorkflowQuickAction("call_ahead", "Call ahead"),
                 WorkflowQuickAction("enroute", "On my way"),
-                WorkflowQuickAction("photos", "Prep photos")
+                WorkflowQuickAction("no_answer", "No answer")
             )
         }
 

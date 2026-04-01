@@ -50,4 +50,10 @@ interface FieldOpsRepository {
         statusOverride: String? = null,
         sendNotice: Boolean = false
     ): TechnicianActionResult = TechnicianActionResult(false, "Photo compliance evaluation is not available for this backend")
+    fun logWorkStart(baseUrl: String?, apiKey: String?, jobId: String, details: String? = null): TechnicianActionResult =
+        TechnicianActionResult(false, "Work-start flow is not available for this backend")
+    fun reportNoAnswer(baseUrl: String?, apiKey: String?, jobId: String, details: String): TechnicianActionResult =
+        TechnicianActionResult(false, "No-answer flow is not available for this backend")
+    fun reportNotHome(baseUrl: String?, apiKey: String?, jobId: String, details: String): TechnicianActionResult =
+        TechnicianActionResult(false, "Not-home flow is not available for this backend")
 }

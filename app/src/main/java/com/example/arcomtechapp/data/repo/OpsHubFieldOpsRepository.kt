@@ -188,6 +188,18 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
         return postAction(baseUrl, apiKey, "/tech/jobs/$jobId/photo_compliance", payload)
     }
 
+    override fun logWorkStart(baseUrl: String?, apiKey: String?, jobId: String, details: String?): TechnicianActionResult {
+        val payload = JSONObject()
+        details?.trim()?.takeIf { it.isNotBlank() }?.let { payload.put("details", it) }
+        return postAction(baseUrl, apiKey, "/tech/jobs/$jobId/start", payload)
+    }
+
+    override fun reportNoAnswer(baseUrl: String?, apiKey: String?, jobId: String, details: String): TechnicianActionResult =
+        postAction(baseUrl, apiKey, "/tech/jobs/$jobId/no_answer", JSONObject().put("details", details))
+
+    override fun reportNotHome(baseUrl: String?, apiKey: String?, jobId: String, details: String): TechnicianActionResult =
+        postAction(baseUrl, apiKey, "/tech/jobs/$jobId/not_home", JSONObject().put("details", details))
+
     private fun buildPath(
         basePath: String,
         techId: String? = null,

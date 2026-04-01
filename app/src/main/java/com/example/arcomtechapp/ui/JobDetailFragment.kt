@@ -132,6 +132,9 @@ class JobDetailFragment : Fragment() {
         binding.buttonWorkflowComplete.setOnClickListener {
             handleWorkflowAction(job, "complete")
         }
+        binding.buttonWorkflowStart.setOnClickListener { promptForWorkStart(job) }
+        binding.buttonWorkflowNoAnswer.setOnClickListener { promptForNoAnswer(job) }
+        binding.buttonWorkflowNotHome.setOnClickListener { promptForNotHome(job) }
 
         if (launchCallOnOpen) {
             launchCallOnOpen = false
@@ -210,6 +213,9 @@ class JobDetailFragment : Fragment() {
             "navigate", "next_job" -> openNavigation(job)
             "photos" -> openPhotos(job)
             "notes" -> openNotes(job)
+            "start" -> promptForWorkStart(job)
+            "no_answer" -> promptForNoAnswer(job)
+            "not_home" -> promptForNotHome(job)
             "quote_needed" -> promptForQuoteNeeded(job)
             "reschedule" -> promptForReschedule(job)
             "parts" -> promptForPartsRequest(job)
@@ -243,6 +249,27 @@ class JobDetailFragment : Fragment() {
         }
     }
 
+    private fun promptForWorkStart(job: Job) {
+        promptForOptionalText(
+            title = "Start work",
+            hint = "Optional start note or work plan"
+        ) { details ->
+            lifecycleScope.launch(Dispatchers.IO) {
+                val result = RepositoryProvider.fromContext(requireContext()).logWorkStart(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    job.id,
+                    details
+                )
+                withContext(Dispatchers.Main) {
+                    storage.saveLastJobAction(job.id, result.message)
+                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                    refreshJobContext()
+                }
+            }
+        }
+    }
+
     private fun performStatusAction(job: Job, actionKey: String, fallbackLabel: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             val repo = RepositoryProvider.fromContext(requireContext())
@@ -257,6 +284,48 @@ class JobDetailFragment : Fragment() {
                 storage.saveLastJobAction(job.id, message)
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
                 refreshJobContext()
+            }
+        }
+    }
+
+    private fun promptForNoAnswer(job: Job) {
+        promptForText(
+            title = "No answer",
+            hint = "Phone attempts or contact details"
+        ) { details ->
+            lifecycleScope.launch(Dispatchers.IO) {
+                val result = RepositoryProvider.fromContext(requireContext()).reportNoAnswer(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    job.id,
+                    details
+                )
+                withContext(Dispatchers.Main) {
+                    storage.saveLastJobAction(job.id, result.message)
+                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                    refreshJobContext()
+                }
+            }
+        }
+    }
+
+    private fun promptForNotHome(job: Job) {
+        promptForText(
+            title = "Not home",
+            hint = "Proof-of-visit context or site details"
+        ) { details ->
+            lifecycleScope.launch(Dispatchers.IO) {
+                val result = RepositoryProvider.fromContext(requireContext()).reportNotHome(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    job.id,
+                    details
+                )
+                withContext(Dispatchers.Main) {
+                    storage.saveLastJobAction(job.id, result.message)
+                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                    refreshJobContext()
+                }
             }
         }
     }
@@ -359,6 +428,22 @@ class JobDetailFragment : Fragment() {
                 } else {
                     onSubmit(value)
                 }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun promptForOptionalText(title: String, hint: String, onSubmit: (String?) -> Unit) {
+        val input = EditText(requireContext()).apply {
+            setHint(hint)
+            minLines = 3
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(title)
+            .setView(input)
+            .setPositiveButton("Submit") { _, _ ->
+                val value = input.text?.toString().orEmpty().trim()
+                onSubmit(value.ifBlank { null })
             }
             .setNegativeButton("Cancel", null)
             .show()
