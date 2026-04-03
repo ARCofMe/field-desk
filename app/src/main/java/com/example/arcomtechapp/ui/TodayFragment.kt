@@ -148,7 +148,9 @@ class TodayFragment : Fragment() {
             withContext(Dispatchers.Main) {
                 storage.saveLastJobAction(job.id, result.message)
                 Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
-                viewModel.loadDashboard(storage.getTechnicianId(), storage.getActiveBaseUrl(), storage.getActiveApiKey())
+                if (result.success) {
+                    viewModel.loadDashboard(storage.getTechnicianId(), storage.getActiveBaseUrl(), storage.getActiveApiKey())
+                }
             }
         }
     }

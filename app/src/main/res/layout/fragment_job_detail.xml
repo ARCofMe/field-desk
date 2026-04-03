@@ -110,13 +110,22 @@
             android:text="Local progress"
             android:textColor="@color/brand_subtle_text" />
 
-        <TextView
-            android:id="@+id/text_closeout_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="Closeout status"
-            android:textColor="@color/brand_subtle_text" />
+                <TextView
+                    android:id="@+id/text_closeout_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Closeout status"
+                    android:textColor="@color/brand_subtle_text" />
+
+                <TextView
+                    android:id="@+id/text_action_feedback"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Action feedback"
+                    android:textColor="@color/brand_warn"
+                    android:visibility="gone" />
 
                 <LinearLayout
                     android:layout_width="match_parent"

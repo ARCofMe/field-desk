@@ -10,11 +10,13 @@ import android.view.ViewGroup
 import android.widget.EditText
 import androidx.fragment.app.Fragment
 import android.widget.Toast
+import androidx.core.view.isVisible
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.data.models.JobPartsCase
 import com.example.arcomtechapp.data.models.JobPhotoStatus
 import com.example.arcomtechapp.data.models.JobTimelineEntry
+import com.example.arcomtechapp.data.repo.TechnicianActionResult
 import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentJobDetailBinding
 import com.example.arcomtechapp.storage.Storage
@@ -89,6 +91,7 @@ class JobDetailFragment : Fragment() {
         binding.textPartsCase.text = buildPartsCaseText(job)
         binding.textPhotoCompliance.text = buildPhotoComplianceText()
         binding.textTimelinePreview.text = buildTimelinePreview()
+        binding.textActionFeedback.isVisible = false
         binding.textWorkflowHeadline.text = summary.nextStep
         binding.textWorkflowChecklist.text = summary.checklist.joinToString("\n") {
             "${if (it.done) "•" else "○"} ${it.label}"
@@ -158,26 +161,34 @@ class JobDetailFragment : Fragment() {
         val currentJob = job ?: return
         lifecycleScope.launch(Dispatchers.IO) {
             val repo = RepositoryProvider.fromContext(requireContext())
-            val refreshedJob = repo.getJob(
-                storage.getActiveBaseUrl(),
-                storage.getActiveApiKey(),
-                currentJob.id
-            ) ?: currentJob
-            val refreshedPartsCase = repo.getJobPartsCase(
-                storage.getActiveBaseUrl(),
-                storage.getActiveApiKey(),
-                currentJob.id
-            )
-            val refreshedPhotoStatus = repo.getJobPhotoStatus(
-                storage.getActiveBaseUrl(),
-                storage.getActiveApiKey(),
-                currentJob.id
-            )
-            val refreshedTimeline = repo.getJobTimeline(
-                storage.getActiveBaseUrl(),
-                storage.getActiveApiKey(),
-                currentJob.id
-            )
+            val refreshedJob = runCatching {
+                repo.getJob(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    currentJob.id
+                ) ?: currentJob
+            }.getOrDefault(currentJob)
+            val refreshedPartsCase = runCatching {
+                repo.getJobPartsCase(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    currentJob.id
+                )
+            }.getOrNull()
+            val refreshedPhotoStatus = runCatching {
+                repo.getJobPhotoStatus(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    currentJob.id
+                )
+            }.getOrNull()
+            val refreshedTimeline = runCatching {
+                repo.getJobTimeline(
+                    storage.getActiveBaseUrl(),
+                    storage.getActiveApiKey(),
+                    currentJob.id
+                )
+            }.getOrDefault(emptyList())
             withContext(Dispatchers.Main) {
                 job = refreshedJob
                 partsCase = refreshedPartsCase
@@ -189,11 +200,19 @@ class JobDetailFragment : Fragment() {
     }
 
     private fun dialCustomer(job: Job) {
+        if (job.customerPhone.isBlank()) {
+            showActionFeedback("No customer phone is available for this job.")
+            return
+        }
         storage.saveLastJobAction(job.id, "Called customer")
         startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${job.customerPhone}")))
     }
 
     private fun openNavigation(job: Job) {
+        if (job.address.isBlank() || job.address.equals("Address not provided", ignoreCase = true)) {
+            showActionFeedback("No mappable address is available for this job.")
+            return
+        }
         storage.saveLastJobAction(job.id, "Opened navigation")
         val mapUri = Uri.parse("geo:0,0?q=${Uri.encode(job.address)}")
         startActivity(Intent(Intent.ACTION_VIEW, mapUri))
@@ -253,9 +272,7 @@ class JobDetailFragment : Fragment() {
                     details
                 )
                 withContext(Dispatchers.Main) {
-                    storage.saveLastJobAction(job.id, result.message)
-                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
-                    refreshJobContext()
+                    handleActionResult(job, result, refreshOnSuccess = true)
                 }
             }
         }
@@ -271,10 +288,12 @@ class JobDetailFragment : Fragment() {
                 actionKey
             )
             withContext(Dispatchers.Main) {
-                val message = if (result.message.isNotBlank()) result.message else fallbackLabel
-                storage.saveLastJobAction(job.id, message)
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-                refreshJobContext()
+                val normalized = if (result.success && result.message.isBlank()) {
+                    result.copy(message = fallbackLabel)
+                } else {
+                    result
+                }
+                handleActionResult(job, normalized, refreshOnSuccess = true)
             }
         }
     }
@@ -292,10 +311,10 @@ class JobDetailFragment : Fragment() {
                     details
                 )
                 withContext(Dispatchers.Main) {
-                    storage.setJobFinalOutcome(job.id, "unable_to_complete", details)
-                    storage.saveLastJobAction(job.id, result.message)
-                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
-                    refreshJobContext()
+                    if (result.success) {
+                        storage.setJobFinalOutcome(job.id, "unable_to_complete", details)
+                    }
+                    handleActionResult(job, result, refreshOnSuccess = true)
                 }
             }
         }
@@ -314,10 +333,10 @@ class JobDetailFragment : Fragment() {
                     details
                 )
                 withContext(Dispatchers.Main) {
-                    storage.setJobFinalOutcome(job.id, "unable_to_complete", details)
-                    storage.saveLastJobAction(job.id, result.message)
-                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
-                    refreshJobContext()
+                    if (result.success) {
+                        storage.setJobFinalOutcome(job.id, "unable_to_complete", details)
+                    }
+                    handleActionResult(job, result, refreshOnSuccess = true)
                 }
             }
         }
@@ -364,9 +383,7 @@ class JobDetailFragment : Fragment() {
                 "complete"
             )
             withContext(Dispatchers.Main) {
-                storage.saveLastJobAction(job.id, result.message)
-                Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
-                refreshJobContext()
+                handleActionResult(job, result, refreshOnSuccess = true)
             }
         }
     }
@@ -384,10 +401,10 @@ class JobDetailFragment : Fragment() {
                     reason
                 )
                 withContext(Dispatchers.Main) {
-                    storage.setJobFinalOutcome(job.id, "unable_to_complete", reason)
-                    storage.saveLastJobAction(job.id, result.message)
-                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
-                    refreshJobContext()
+                    if (result.success) {
+                        storage.setJobFinalOutcome(job.id, "unable_to_complete", reason)
+                    }
+                    handleActionResult(job, result, refreshOnSuccess = true)
                 }
             }
         }
@@ -402,11 +419,15 @@ class JobDetailFragment : Fragment() {
                 30
             )
             withContext(Dispatchers.Main) {
-                val message = if (result.message.isNotBlank()) result.message else "Call-ahead logged"
-                storage.saveLastJobAction(job.id, message)
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-                refreshJobContext()
-                dialCustomer(job)
+                val normalized = if (result.success && result.message.isBlank()) {
+                    result.copy(message = "Call-ahead logged")
+                } else {
+                    result
+                }
+                handleActionResult(job, normalized, refreshOnSuccess = true)
+                if (normalized.success) {
+                    dialCustomer(job)
+                }
             }
         }
     }
@@ -424,9 +445,7 @@ class JobDetailFragment : Fragment() {
                     details.ifBlank { "Requested from mobile technician workflow" }
                 )
                 withContext(Dispatchers.Main) {
-                    storage.saveLastJobAction(job.id, result.message)
-                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
-                    refreshJobContext()
+                    handleActionResult(job, result, refreshOnSuccess = true)
                 }
             }
         }
@@ -447,9 +466,7 @@ class JobDetailFragment : Fragment() {
                     subtype
                 )
                 withContext(Dispatchers.Main) {
-                    storage.saveLastJobAction(job.id, result.message)
-                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
-                    refreshJobContext()
+                    handleActionResult(job, result, refreshOnSuccess = true)
                 }
             }
         }
@@ -468,12 +485,33 @@ class JobDetailFragment : Fragment() {
                     reason
                 )
                 withContext(Dispatchers.Main) {
-                    storage.saveLastJobAction(job.id, result.message)
-                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
-                    refreshJobContext()
+                    handleActionResult(job, result, refreshOnSuccess = true)
                 }
             }
         }
+    }
+
+    private fun handleActionResult(job: Job, result: TechnicianActionResult, refreshOnSuccess: Boolean) {
+        val message = result.message.ifBlank {
+            if (result.success) "Action submitted." else "Action failed."
+        }
+        storage.saveLastJobAction(job.id, message)
+        showActionFeedback(message, isError = !result.success)
+        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        if (result.success && refreshOnSuccess) {
+            refreshJobContext()
+        }
+    }
+
+    private fun showActionFeedback(message: String, isError: Boolean = true) {
+        binding.textActionFeedback.isVisible = message.isNotBlank()
+        binding.textActionFeedback.text = message
+        binding.textActionFeedback.setTextColor(
+            resources.getColor(
+                if (isError) R.color.brand_warn else R.color.brand_success,
+                requireContext().theme
+            )
+        )
     }
 
     private fun promptForText(title: String, hint: String, onSubmit: (String) -> Unit) {
