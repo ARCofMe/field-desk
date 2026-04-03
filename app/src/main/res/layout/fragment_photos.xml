@@ -100,14 +100,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Prepare upload package" />
+            android:text="Check compliance" />
 
         <Button
             android:id="@+id/button_email_upload"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Mark ready for upload" />
+            android:text="Attach photo to SR" />
 
         <ImageView
             android:id="@+id/image_preview"

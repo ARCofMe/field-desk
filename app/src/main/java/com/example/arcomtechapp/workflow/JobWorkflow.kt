@@ -139,13 +139,16 @@ object JobWorkflow {
 
     fun sortForTechnicianFlow(jobs: List<Job>): List<Job> {
         return jobs.sortedWith(
-            compareBy<Job> { summarize(it).priorityScore }
-                .thenBy { appointmentBucket(it.appointmentWindow) }
+            compareBy<Job> { appointmentBucket(it.appointmentWindow) }
+                .thenBy { summarize(it).priorityScore }
                 .thenBy { it.customerName.lowercase(Locale.getDefault()) }
         )
     }
 
-    fun activeJob(jobs: List<Job>): Job? = sortForTechnicianFlow(jobs).firstOrNull()
+    fun activeJob(jobs: List<Job>): Job? {
+        val ordered = sortForTechnicianFlow(jobs)
+        return ordered.firstOrNull { !it.status.contains("complete", ignoreCase = true) } ?: ordered.firstOrNull()
+    }
 
     private fun appointmentBucket(window: String?): Int {
         val normalized = window.orEmpty().lowercase(Locale.getDefault())

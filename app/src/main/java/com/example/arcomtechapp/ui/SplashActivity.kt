@@ -7,6 +7,7 @@ import com.example.arcomtechapp.storage.Storage
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import androidx.appcompat.app.AppCompatDelegate
+import com.example.arcomtechapp.ui.settings.SettingsActivity
 
 class SplashActivity : AppCompatActivity() {
 
@@ -19,14 +20,14 @@ class SplashActivity : AppCompatActivity() {
 
         val storage = Storage(this)
         AppCompatDelegate.setDefaultNightMode(storage.getThemeMode())
-        val apiKey = storage.getApiKey()
+        val configStatus = storage.getConfigStatus()
 
-        // If no API key is stored, still take the user to the main UI so the drawer is reachable.
-        // Settings remains accessible from the nav menu for configuration.
-        val next = if (apiKey.isNullOrEmpty()) {
+        val next = if (configStatus.complete) {
             Intent(this, MainActivity::class.java)
         } else {
-            Intent(this, MainActivity::class.java)
+            Intent(this, SettingsActivity::class.java).apply {
+                putExtra(SettingsActivity.EXTRA_REQUIRE_SETUP, true)
+            }
         }
 
         startActivity(next)

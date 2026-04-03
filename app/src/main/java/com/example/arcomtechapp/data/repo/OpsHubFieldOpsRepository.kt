@@ -8,6 +8,7 @@ import com.example.arcomtechapp.data.models.JobPhotoStatus
 import com.example.arcomtechapp.data.models.JobTimelineEntry
 import org.json.JSONArray
 import org.json.JSONObject
+import android.util.Base64
 import java.io.BufferedReader
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
@@ -65,6 +66,18 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
 
     override fun preparePhotoUpload(baseUrl: String?, apiKey: String?, jobId: String, photoLabel: String): TechnicianActionResult =
         postAction(baseUrl, apiKey, "/tech/jobs/$jobId/photos/prepare", JSONObject().put("label", photoLabel))
+
+    override fun uploadJobPhoto(baseUrl: String?, apiKey: String?, jobId: String, request: PhotoUploadRequest): TechnicianActionResult =
+        postAction(
+            baseUrl,
+            apiKey,
+            "/tech/jobs/$jobId/photos/upload",
+            JSONObject()
+                .put("label", request.label)
+                .put("filename", request.filename)
+                .put("contentType", request.contentType)
+                .put("dataBase64", Base64.encodeToString(request.data, Base64.NO_WRAP))
+        )
 
     override fun getJob(baseUrl: String?, apiKey: String?, jobId: String): Job? {
         return try {

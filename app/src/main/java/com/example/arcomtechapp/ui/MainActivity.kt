@@ -21,9 +21,10 @@ class MainActivity : AppCompatActivity(),
     private lateinit var storage: Storage
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        storage = Storage(this)
+        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(storage.getThemeMode())
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        storage = Storage(this)
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
@@ -61,6 +62,11 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        updateNavHeader()
+    }
+
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.nav_dashboard ->
@@ -92,8 +98,8 @@ class MainActivity : AppCompatActivity(),
         val subtitle = headerView.findViewById<android.widget.TextView>(R.id.header_subtitle)
         val logo = headerView.findViewById<android.widget.ImageView>(R.id.header_logo)
         title.text = storage.getTechnicianName().orEmpty().ifBlank { "ARCoM Tech" }
-        val baseUrl = storage.getBaseUrl()
-        subtitle.text = baseUrl?.takeIf { it.isNotBlank() } ?: "BlueFolder not configured"
+        val activeBaseUrl = storage.getActiveBaseUrl()
+        subtitle.text = activeBaseUrl?.takeIf { it.isNotBlank() } ?: "Setup required"
         logo.setImageResource(R.drawable.arcom_logo_full)
     }
 }

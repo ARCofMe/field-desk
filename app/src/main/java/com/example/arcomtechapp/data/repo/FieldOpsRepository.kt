@@ -11,6 +11,13 @@ data class TechnicianActionResult(
     val message: String
 )
 
+data class PhotoUploadRequest(
+    val filename: String,
+    val contentType: String?,
+    val data: ByteArray,
+    val label: String
+)
+
 interface FieldOpsRepository {
     fun testPython(): String
     fun getAssignmentsForUser(techId: String): List<Assignment>
@@ -28,6 +35,8 @@ interface FieldOpsRepository {
     fun updateJobStatus(baseUrl: String?, apiKey: String?, jobId: String, statusKey: String): TechnicianActionResult
     fun createPartsRequest(baseUrl: String?, apiKey: String?, jobId: String, details: String): TechnicianActionResult
     fun preparePhotoUpload(baseUrl: String?, apiKey: String?, jobId: String, photoLabel: String): TechnicianActionResult
+    fun uploadJobPhoto(baseUrl: String?, apiKey: String?, jobId: String, request: PhotoUploadRequest): TechnicianActionResult =
+        TechnicianActionResult(false, "Direct photo attachment is not available for this backend")
     fun getJob(baseUrl: String?, apiKey: String?, jobId: String): Job? = null
     fun getJobPartsCase(baseUrl: String?, apiKey: String?, jobId: String): JobPartsCase? = null
     fun getJobTimeline(baseUrl: String?, apiKey: String?, jobId: String): List<JobTimelineEntry> = emptyList()

@@ -25,10 +25,11 @@ class SettingsActivity : AppCompatActivity() {
     private var suppressBackendToggle = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        storage = Storage(this)
+        AppCompatDelegate.setDefaultNightMode(storage.getThemeMode())
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        storage = Storage(this)
 
         val toolbar: MaterialToolbar = binding.settingsToolbar
         setSupportActionBar(toolbar)
@@ -37,6 +38,10 @@ class SettingsActivity : AppCompatActivity() {
 
         loadSettings()
         setupListeners()
+
+        if (intent.getBooleanExtra(EXTRA_REQUIRE_SETUP, false)) {
+            binding.textTestResult.text = "Complete setup before using the app."
+        }
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -140,6 +145,7 @@ class SettingsActivity : AppCompatActivity() {
         val activeKey = if (snapshot.backendMode == Storage.BackendMode.OPS_HUB) snapshot.opsHubApiKey else snapshot.apiKey
         if (activeKey.isNullOrBlank()) pieces.add("API key missing") else pieces.add("API key saved")
         if (activeBase.isNullOrBlank()) pieces.add("Base URL missing") else pieces.add("Base URL set")
+        if (snapshot.technicianId.isNullOrBlank()) pieces.add("Technician ID missing") else pieces.add("Technician ID set")
         pieces.add(if (snapshot.isAuthenticated) "Authenticated" else "Not authenticated")
         binding.textStatus.text = pieces.joinToString(" • ")
     }
@@ -203,5 +209,9 @@ class SettingsActivity : AppCompatActivity() {
                 binding.textTestResult.text = result
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_REQUIRE_SETUP = "require_setup"
     }
 }

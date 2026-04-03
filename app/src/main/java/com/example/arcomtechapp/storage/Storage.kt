@@ -29,6 +29,11 @@ class Storage(context: Context) {
         val lastJobActionJobId: String?
     )
 
+    data class ConfigStatus(
+        val complete: Boolean,
+        val missingItems: List<String>
+    )
+
     data class LocalJobProgress(
         val noteDraft: String?,
         val photoCount: Int,
@@ -93,6 +98,25 @@ class Storage(context: Context) {
             BackendMode.OPS_HUB -> getOpsHubApiKey()
             BackendMode.BLUEFOLDER_DIRECT -> getApiKey()
         }
+
+    fun getConfigStatus(): ConfigStatus {
+        val missing = mutableListOf<String>()
+        when (getBackendMode()) {
+            BackendMode.OPS_HUB -> {
+                if (getOpsHubBaseUrl().isNullOrBlank()) missing += "Ops Hub base URL"
+                if (getOpsHubApiKey().isNullOrBlank()) missing += "Ops Hub API key"
+            }
+            BackendMode.BLUEFOLDER_DIRECT -> {
+                if (getBaseUrl().isNullOrBlank()) missing += "BlueFolder base URL"
+                if (getApiKey().isNullOrBlank()) missing += "BlueFolder API key"
+            }
+        }
+        if (getTechnicianId().isNullOrBlank()) missing += "Technician ID"
+        return ConfigStatus(
+            complete = missing.isEmpty(),
+            missingItems = missing
+        )
+    }
 
     fun setAuthenticated(isAuthenticated: Boolean) {
         prefs.edit().putBoolean(KEY_IS_AUTH, isAuthenticated).apply()

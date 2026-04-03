@@ -1,6 +1,7 @@
 package com.example.arcomtechapp.ui
 
 import android.graphics.Bitmap
+import android.webkit.MimeTypeMap
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,11 +13,13 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.data.models.JobPhotoStatus
+import com.example.arcomtechapp.data.repo.PhotoUploadRequest
 import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentPhotosBinding
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
+import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -29,6 +32,7 @@ class PhotosFragment : Fragment() {
     private var job: Job? = null
     private var selectedPromptIndex: Int = 0
     private var livePhotoStatus: JobPhotoStatus? = null
+    private var pendingUpload: PhotoUploadRequest? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,6 +44,7 @@ class PhotosFragment : Fragment() {
     ) { bitmap: Bitmap? ->
         bitmap?.let {
             binding.imagePreview.setImageBitmap(it)
+            pendingUpload = buildCameraUploadRequest(it)
             onPhotoCaptured("Captured ${selectedPhotoLabel().lowercase()} from camera")
         } ?: updateStatus("Camera canceled")
     }
@@ -49,7 +54,12 @@ class PhotosFragment : Fragment() {
     ) { uri ->
         if (uri != null) {
             binding.imagePreview.setImageURI(uri)
-            onPhotoCaptured("Attached ${selectedPhotoLabel().lowercase()} from gallery")
+            pendingUpload = buildGalleryUploadRequest(uri.toString())
+            if (pendingUpload == null) {
+                updateStatus("Could not read the selected photo")
+            } else {
+                onPhotoCaptured("Attached ${selectedPhotoLabel().lowercase()} from gallery")
+            }
         } else {
             updateStatus("Gallery canceled")
         }
@@ -75,7 +85,7 @@ class PhotosFragment : Fragment() {
         binding.buttonOptimize.setOnClickListener {
             val currentJob = job
             if (currentJob == null) {
-                updateStatus("Prepared ${selectedPhotoLabel().lowercase()} package for upload")
+                updateStatus("Open photos from a job to check compliance")
                 return@setOnClickListener
             }
             lifecycleScope.launch(Dispatchers.IO) {
@@ -94,21 +104,29 @@ class PhotosFragment : Fragment() {
         binding.buttonEmailUpload.setOnClickListener {
             val currentJob = job
             if (currentJob == null) {
-                Toast.makeText(requireContext(), "Open photos from a job to sync them", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Open photos from a job to attach them", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val upload = pendingUpload
+            if (upload == null) {
+                Toast.makeText(requireContext(), "Capture or select a photo first", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             binding.buttonEmailUpload.isEnabled = false
             lifecycleScope.launch(Dispatchers.IO) {
-                val result = RepositoryProvider.fromContext(requireContext()).preparePhotoUpload(
+                val result = RepositoryProvider.fromContext(requireContext()).uploadJobPhoto(
                     storage.getActiveBaseUrl(),
                     storage.getActiveApiKey(),
                     currentJob.id,
-                    selectedPhotoLabel()
+                    upload
                 )
                 withContext(Dispatchers.Main) {
                     binding.buttonEmailUpload.isEnabled = true
                     storage.saveLastJobAction(currentJob.id, result.message)
                     Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                    if (result.success) {
+                        pendingUpload = null
+                    }
                     renderProgress()
                     refreshPhotoStatus()
                 }
@@ -125,8 +143,8 @@ class PhotosFragment : Fragment() {
 
     private fun buildConfigText(): String {
         val parts = mutableListOf<String>()
-        parts += storage.getBaseUrl()?.ifBlank { "No base URL" } ?: "No base URL"
-        parts += if (storage.getApiKey().isNullOrBlank()) "API key missing" else "API key set"
+        parts += storage.getActiveBaseUrl()?.ifBlank { "No backend URL" } ?: "No backend URL"
+        parts += if (storage.getActiveApiKey().isNullOrBlank()) "API key missing" else "API key set"
         parts += if (storage.shouldAutoCompressPhotos()) "Auto-compress ON" else "Auto-compress OFF"
         return parts.joinToString(" • ")
     }
@@ -206,8 +224,12 @@ class PhotosFragment : Fragment() {
             progress.lastPhotoLabel?.takeIf { it.isNotBlank() }?.let {
                 append("\nLast capture: $it")
             }
+            pendingUpload?.let {
+                append("\nReady to attach: ${it.filename}")
+            }
         }
         binding.textPhotoCompliance.text = buildPhotoComplianceText()
+        binding.buttonEmailUpload.text = if (pendingUpload == null) "Attach photo to SR" else "Attach ${selectedPhotoLabel()} to SR"
     }
 
     private fun updateStatus(status: String) {
@@ -245,6 +267,43 @@ class PhotosFragment : Fragment() {
                 append("\nSuggested set: ${prompts.joinToString(", ")}")
             }
         }
+    }
+
+    private fun buildCameraUploadRequest(bitmap: Bitmap): PhotoUploadRequest {
+        val stream = ByteArrayOutputStream()
+        val quality = if (storage.shouldAutoCompressPhotos()) 82 else 95
+        bitmap.compress(Bitmap.CompressFormat.JPEG, quality, stream)
+        return PhotoUploadRequest(
+            filename = buildPhotoFilename("jpg"),
+            contentType = "image/jpeg",
+            data = stream.toByteArray(),
+            label = selectedPhotoLabel()
+        )
+    }
+
+    private fun buildGalleryUploadRequest(uriText: String): PhotoUploadRequest? {
+        val uri = android.net.Uri.parse(uriText)
+        val resolver = requireContext().contentResolver
+        val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
+        val contentType = resolver.getType(uri) ?: "image/jpeg"
+        val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(contentType) ?: "jpg"
+        val filename = buildPhotoFilename(extension)
+        return PhotoUploadRequest(
+            filename = filename,
+            contentType = contentType,
+            data = bytes,
+            label = selectedPhotoLabel()
+        )
+    }
+
+    private fun buildPhotoFilename(extension: String): String {
+        val jobId = job?.id ?: "local"
+        val label = selectedPhotoLabel()
+            .lowercase()
+            .replace(Regex("[^a-z0-9]+"), "-")
+            .trim('-')
+            .ifBlank { "photo" }
+        return "sr-$jobId-$label.$extension"
     }
 
     companion object {
