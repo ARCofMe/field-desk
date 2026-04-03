@@ -60,7 +60,18 @@ class TechnicianDashboardViewModel(
         if (message.isNullOrBlank()) return "Unknown error"
         // Strip any HTML fragments
         val clean = message.substringBefore("<!DOCTYPE").substringBefore("<html")
-        return clean.replace("\n", " ").trim()
+        val flattened = clean.replace("\n", " ").trim()
+        return when {
+            flattened.contains("Configure Ops Hub base URL first", ignoreCase = true) ->
+                "Ops Hub setup is incomplete. Open Settings and enter the server URL."
+            flattened.contains("Configure Ops Hub API key first", ignoreCase = true) ->
+                "Ops Hub setup is incomplete. Open Settings and enter the API key."
+            flattened.contains("Technician mapping could not be resolved", ignoreCase = true) ->
+                "This technician ID is not mapped in Ops Hub yet. Update Settings or the server mapping."
+            flattened.contains("could not reach the configured server", ignoreCase = true) ->
+                "Could not reach Ops Hub. Check your network and confirm the server URL is publicly reachable."
+            else -> flattened
+        }
     }
 
     class Factory(

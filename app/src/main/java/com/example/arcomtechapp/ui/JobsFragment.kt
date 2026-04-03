@@ -88,11 +88,15 @@ class JobsFragment : Fragment() {
     }
 
     private fun buildHeaderText(): String {
-        val baseUrl = storage.getBaseUrl()
-        val apiKey = storage.getApiKey()
+        val baseUrl = storage.getActiveBaseUrl()
+        val apiKey = storage.getActiveApiKey()
         val techName = storage.getTechnicianName()
         val pieces = mutableListOf<String>()
         techName?.let { if (it.isNotBlank()) pieces.add("Tech: $it") }
+        pieces += when (storage.getBackendMode()) {
+            Storage.BackendMode.OPS_HUB -> "Ops Hub"
+            Storage.BackendMode.BLUEFOLDER_DIRECT -> "BlueFolder"
+        }
         baseUrl?.let { if (it.isNotBlank()) pieces.add(it) }
         if (apiKey.isNullOrBlank()) pieces.add("API key missing")
         return if (pieces.isEmpty()) "Full job list" else pieces.joinToString(" • ")

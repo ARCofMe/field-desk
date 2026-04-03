@@ -44,7 +44,7 @@ class DashboardFragment : Fragment() {
         binding.buttonOpenNotes.setOnClickListener { openFragment(NotesFragment()) }
         binding.buttonSyncNow.setOnClickListener {
             storage.markSyncNow()
-            viewModel.loadDashboard(storage.getTechnicianId(), storage.getBaseUrl(), storage.getApiKey())
+            viewModel.loadDashboard(storage.getTechnicianId(), storage.getActiveBaseUrl(), storage.getActiveApiKey())
             Toast.makeText(requireContext(), "Sync marked", Toast.LENGTH_SHORT).show()
             updateConnectionBanner()
         }
@@ -52,7 +52,7 @@ class DashboardFragment : Fragment() {
 
         observeViewModel()
         updateConnectionBanner()
-        viewModel.loadDashboard(storage.getTechnicianId(), storage.getBaseUrl(), storage.getApiKey())
+        viewModel.loadDashboard(storage.getTechnicianId(), storage.getActiveBaseUrl(), storage.getActiveApiKey())
     }
 
     private fun observeViewModel() {
@@ -89,11 +89,15 @@ class DashboardFragment : Fragment() {
 
     private fun updateConnectionBanner() {
         val name = storage.getTechnicianName().orEmpty().ifBlank { "Technician" }
-        val baseUrl = storage.getBaseUrl()
-        val apiKey = storage.getApiKey()
+        val baseUrl = storage.getActiveBaseUrl()
+        val apiKey = storage.getActiveApiKey()
         val statusParts = mutableListOf<String>()
         statusParts += name
-        statusParts += if (baseUrl.isNullOrBlank()) "No subdomain set" else baseUrl
+        statusParts += when (storage.getBackendMode()) {
+            Storage.BackendMode.OPS_HUB -> "Ops Hub"
+            Storage.BackendMode.BLUEFOLDER_DIRECT -> "BlueFolder"
+        }
+        statusParts += if (baseUrl.isNullOrBlank()) "No server URL set" else baseUrl
         statusParts += if (apiKey.isNullOrBlank()) "Missing API key" else "Key saved"
 
         if (binding.textConnection.text.isNullOrBlank()) {

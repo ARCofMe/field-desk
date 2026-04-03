@@ -110,8 +110,12 @@ class NotesFragment : Fragment() {
         }
         parts += storage.getTechnicianName()?.ifBlank { "Technician" } ?: "Technician"
         storage.getTechnicianId()?.let { if (it.isNotBlank()) parts += "ID: $it" }
-        parts += storage.getBaseUrl()?.ifBlank { "No subdomain" } ?: "No subdomain"
-        parts += if (storage.getApiKey().isNullOrBlank()) "API key missing" else "API ready"
+        parts += when (storage.getBackendMode()) {
+            Storage.BackendMode.OPS_HUB -> "Ops Hub"
+            Storage.BackendMode.BLUEFOLDER_DIRECT -> "BlueFolder"
+        }
+        parts += storage.getActiveBaseUrl()?.ifBlank { "No server URL" } ?: "No server URL"
+        parts += if (storage.getActiveApiKey().isNullOrBlank()) "API key missing" else "API ready"
         return parts.joinToString(" • ")
     }
 

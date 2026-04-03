@@ -40,7 +40,14 @@ class SettingsActivity : AppCompatActivity() {
         setupListeners()
 
         if (intent.getBooleanExtra(EXTRA_REQUIRE_SETUP, false)) {
-            binding.textTestResult.text = "Complete setup before using the app."
+            val missing = storage.getConfigStatus().missingItems
+            binding.textTestResult.text = buildString {
+                append("Complete setup before using the app.")
+                if (missing.isNotEmpty()) {
+                    append("\nMissing: ")
+                    append(missing.joinToString(", "))
+                }
+            }
         }
     }
 

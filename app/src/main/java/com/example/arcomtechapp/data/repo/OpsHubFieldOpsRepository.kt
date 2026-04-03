@@ -11,9 +11,12 @@ import org.json.JSONObject
 import android.util.Base64
 import java.io.BufferedReader
 import java.io.OutputStreamWriter
+import java.net.ConnectException
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
 import java.net.URLEncoder
+import java.net.UnknownHostException
 
 class OpsHubFieldOpsRepository : FieldOpsRepository {
 
@@ -35,7 +38,7 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
             request("GET", baseUrl, apiKey, "/health")
             "Ops Hub reachable"
         } catch (e: Exception) {
-            "Ops Hub connection failed: ${e.message}"
+            "Ops Hub connection failed: ${describeFailure(e)}"
         }
     }
 
@@ -282,7 +285,7 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
                 message = json?.optString("message")?.takeIf { it.isNotBlank() } ?: "Action submitted to Ops Hub"
             )
         } catch (e: Exception) {
-            TechnicianActionResult(false, "Ops Hub request failed: ${e.message}")
+            TechnicianActionResult(false, "Ops Hub request failed: ${describeFailure(e)}")
         }
     }
 
@@ -323,6 +326,17 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
         if (baseUrl.isNullOrBlank()) return null
         val trimmed = baseUrl.trim().trimEnd('/')
         return if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) trimmed else "https://$trimmed"
+    }
+
+    private fun describeFailure(error: Exception): String {
+        val message = error.message?.trim().orEmpty()
+        return when (error) {
+            is UnknownHostException -> "could not reach the configured server. Check the URL and network connection."
+            is ConnectException -> "server refused the connection. Verify Ops Hub is running and reachable."
+            is SocketTimeoutException -> "request timed out. The server may be slow or unreachable from this network."
+            is IllegalStateException -> message.ifBlank { "configuration is incomplete." }
+            else -> message.ifBlank { error::class.java.simpleName }
+        }
     }
 
     private fun encode(value: String): String = URLEncoder.encode(value, "UTF-8")
