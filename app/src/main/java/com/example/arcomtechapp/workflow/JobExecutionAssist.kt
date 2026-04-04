@@ -16,6 +16,7 @@ data class PhotoPrompt(
 
 data class JobProgress(
     val noteDraftLength: Int = 0,
+    val notePendingSync: Boolean = false,
     val photoCount: Int = 0,
     val lastPhotoLabel: String? = null,
     val finalOutcome: String? = null,
@@ -141,6 +142,8 @@ object JobExecutionAssist {
         }
         if (progress.noteDraftLength < 40) {
             blockers += "Finish a structured service note."
+        } else if (progress.notePendingSync) {
+            blockers += "Sync the saved service note to Ops Hub before closeout."
         }
         if (progress.finalOutcome.isNullOrBlank()) {
             blockers += "Choose a final outcome before closing the job."

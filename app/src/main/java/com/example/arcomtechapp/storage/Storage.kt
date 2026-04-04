@@ -36,6 +36,8 @@ class Storage(context: Context) {
 
     data class LocalJobProgress(
         val noteDraft: String?,
+        val notePendingSync: Boolean,
+        val noteLastSyncMessage: String?,
         val photoCount: Int,
         val lastPhotoLabel: String?,
         val finalOutcome: String?,
@@ -241,11 +243,43 @@ class Storage(context: Context) {
 
     fun getLocalJobProgress(jobId: String?): LocalJobProgress = LocalJobProgress(
         noteDraft = getJobNotesDraft(jobId),
+        notePendingSync = isJobNotePendingSync(jobId),
+        noteLastSyncMessage = getJobNoteSyncMessage(jobId),
         photoCount = getJobPhotoCount(jobId),
         lastPhotoLabel = getJobLastPhotoLabel(jobId),
         finalOutcome = getJobFinalOutcome(jobId),
         finalOutcomeNote = getJobFinalOutcomeNote(jobId)
     )
+
+    fun setJobNoteSyncState(jobId: String?, pending: Boolean, message: String? = null) {
+        if (jobId.isNullOrBlank()) return
+        prefs.edit().apply {
+            putBoolean(jobNotePendingSyncKey(jobId), pending)
+            if (message.isNullOrBlank()) {
+                remove(jobNoteSyncMessageKey(jobId))
+            } else {
+                putString(jobNoteSyncMessageKey(jobId), message)
+            }
+        }.apply()
+    }
+
+    fun clearJobNoteSyncState(jobId: String?) {
+        if (jobId.isNullOrBlank()) return
+        prefs.edit()
+            .remove(jobNotePendingSyncKey(jobId))
+            .remove(jobNoteSyncMessageKey(jobId))
+            .apply()
+    }
+
+    fun isJobNotePendingSync(jobId: String?): Boolean {
+        if (jobId.isNullOrBlank()) return false
+        return prefs.getBoolean(jobNotePendingSyncKey(jobId), false)
+    }
+
+    fun getJobNoteSyncMessage(jobId: String?): String? {
+        if (jobId.isNullOrBlank()) return null
+        return prefs.getString(jobNoteSyncMessageKey(jobId), null)
+    }
 
     fun setJobFinalOutcome(jobId: String?, outcome: String?, note: String? = null) {
         if (jobId.isNullOrBlank()) return
@@ -322,6 +356,10 @@ class Storage(context: Context) {
     private fun jobPhotoCountKey(jobId: String): String = "job_photo_count_$jobId"
 
     private fun jobPhotoLabelKey(jobId: String): String = "job_photo_label_$jobId"
+
+    private fun jobNotePendingSyncKey(jobId: String): String = "job_note_pending_sync_$jobId"
+
+    private fun jobNoteSyncMessageKey(jobId: String): String = "job_note_sync_message_$jobId"
 
     private fun jobFinalOutcomeKey(jobId: String): String = "job_final_outcome_$jobId"
 

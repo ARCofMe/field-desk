@@ -121,11 +121,13 @@ class PhotosFragment : Fragment() {
                     upload
                 )
                 withContext(Dispatchers.Main) {
-                    binding.buttonEmailUpload.isEnabled = true
                     storage.saveLastJobAction(currentJob.id, result.message)
                     Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
                     if (result.success) {
                         pendingUpload = null
+                        updateStatus("Photo attached to SR. Capture the next required shot when ready.")
+                    } else {
+                        updateStatus("Photo was not attached. Keep this screen open and retry before leaving the stop.")
                     }
                     renderProgress()
                     refreshPhotoStatus()
@@ -229,7 +231,7 @@ class PhotosFragment : Fragment() {
             }
         }
         binding.textPhotoCompliance.text = buildPhotoComplianceText()
-        binding.buttonEmailUpload.text = if (pendingUpload == null) "Attach photo to SR" else "Attach ${selectedPhotoLabel()} to SR"
+        updateUploadControls()
     }
 
     private fun updateStatus(status: String) {
@@ -266,6 +268,23 @@ class PhotosFragment : Fragment() {
             if (prompts.isNotEmpty()) {
                 append("\nSuggested set: ${prompts.joinToString(", ")}")
             }
+            if (pendingUpload != null) {
+                append("\nSelected photo is only local until you attach it to the SR.")
+            }
+        }
+    }
+
+    private fun updateUploadControls() {
+        val hasPendingUpload = pendingUpload != null
+        val hasJob = job != null
+        binding.buttonEmailUpload.isEnabled = hasPendingUpload && hasJob
+        binding.buttonEmailUpload.text = if (hasPendingUpload) {
+            "Attach ${selectedPhotoLabel()} to SR"
+        } else {
+            "Attach photo to SR"
+        }
+        if (!hasJob) {
+            binding.buttonEmailUpload.isEnabled = false
         }
     }
 

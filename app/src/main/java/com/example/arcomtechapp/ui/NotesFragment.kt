@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.arcomtechapp.data.models.Job
@@ -24,6 +25,7 @@ class NotesFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var storage: Storage
     private var job: Job? = null
+    private var suppressDraftWatcher: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,7 +47,23 @@ class NotesFragment : Fragment() {
         binding.textTemplateThree.setOnClickListener { appendTemplate(2) }
         binding.textTemplateFour.setOnClickListener { appendTemplate(3) }
         applyTemplateLabels()
+        binding.buttonSendNote.text = "Sync note to Ops Hub"
+        suppressDraftWatcher = true
         binding.inputNote.setText(storage.getJobNotesDraft(job?.id).orEmpty())
+        suppressDraftWatcher = false
+        binding.inputNote.doAfterTextChanged { text ->
+            if (suppressDraftWatcher) return@doAfterTextChanged
+            storage.setJobNotesDraft(job?.id, text?.toString())
+            val currentJobId = job?.id
+            if (!currentJobId.isNullOrBlank() && !text.isNullOrBlank()) {
+                storage.setJobNoteSyncState(
+                    currentJobId,
+                    pending = true,
+                    message = "Draft changed locally. Sync note to Ops Hub."
+                )
+            }
+            updateDraftStatus()
+        }
         updateDraftStatus()
 
         binding.buttonSaveDraft.setOnClickListener {
@@ -53,6 +71,7 @@ class NotesFragment : Fragment() {
             storage.setJobNotesDraft(job?.id, note)
             if (job != null) {
                 storage.saveLastJobAction(job?.id, "Saved guided note draft")
+                storage.setJobNoteSyncState(job?.id, pending = true, message = "Draft saved locally. Sync note to Ops Hub.")
             } else {
                 storage.setNotesDraft(note)
             }
@@ -62,10 +81,13 @@ class NotesFragment : Fragment() {
 
         binding.buttonClearDraft.setOnClickListener {
             storage.clearJobNotesDraft(job?.id)
+            storage.clearJobNoteSyncState(job?.id)
             if (job == null) {
                 storage.clearNotesDraft()
             }
+            suppressDraftWatcher = true
             binding.inputNote.setText("")
+            suppressDraftWatcher = false
             updateDraftStatus()
         }
 
@@ -91,6 +113,11 @@ class NotesFragment : Fragment() {
                         binding.buttonSendNote.isEnabled = true
                         storage.saveLastJobAction(currentJob.id, result.message)
                         storage.setJobNotesDraft(currentJob.id, note)
+                        if (result.success) {
+                            storage.setJobNoteSyncState(currentJob.id, pending = false, message = result.message)
+                        } else {
+                            storage.setJobNoteSyncState(currentJob.id, pending = true, message = result.message)
+                        }
                         Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
                         updateDraftStatus()
                     }
@@ -127,6 +154,7 @@ class NotesFragment : Fragment() {
                 it,
                 JobProgress(
                     noteDraftLength = draft?.length ?: 0,
+                    notePendingSync = progress.notePendingSync,
                     photoCount = progress.photoCount,
                     lastPhotoLabel = progress.lastPhotoLabel,
                     finalOutcome = progress.finalOutcome,
@@ -139,6 +167,11 @@ class NotesFragment : Fragment() {
         } else {
             buildString {
                 append("Draft saved (${draft.length} chars)")
+                if (progress.notePendingSync) {
+                    append("\nPending sync to Ops Hub")
+                } else if (!progress.noteLastSyncMessage.isNullOrBlank()) {
+                    append("\nLast sync: ${progress.noteLastSyncMessage}")
+                }
                 closeout?.let {
                     append("\n${it.headline}")
                     if (it.blockers.isNotEmpty()) {
@@ -206,5 +239,10 @@ class NotesFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    override fun onPause() {
+        super.onPause()
+        storage.setJobNotesDraft(job?.id, binding.inputNote.text?.toString())
     }
 }

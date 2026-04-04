@@ -77,6 +77,7 @@ class JobDetailFragment : Fragment() {
             job,
             JobProgress(
                 noteDraftLength = progress.noteDraft?.length ?: 0,
+                notePendingSync = progress.notePendingSync,
                 photoCount = progress.photoCount,
                 lastPhotoLabel = progress.lastPhotoLabel
             )
@@ -106,6 +107,9 @@ class JobDetailFragment : Fragment() {
                     "none yet"
                 }
             )
+            if (progress.notePendingSync) {
+                append(" • Pending sync")
+            }
             append(" • Photos: ${progress.photoCount}")
             progress.lastPhotoLabel?.takeIf { it.isNotBlank() }?.let {
                 append("\nLast photo: $it")
@@ -362,6 +366,7 @@ class JobDetailFragment : Fragment() {
             job,
             JobProgress(
                 noteDraftLength = progress.noteDraft?.length ?: 0,
+                notePendingSync = progress.notePendingSync,
                 photoCount = progress.photoCount,
                 lastPhotoLabel = progress.lastPhotoLabel,
                 finalOutcome = storage.getJobFinalOutcome(job.id),
