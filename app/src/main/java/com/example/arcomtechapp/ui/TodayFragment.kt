@@ -17,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.ui.settings.SettingsActivity
+import com.example.arcomtechapp.workflow.JobExecutionAssist
 import com.example.arcomtechapp.viewmodel.TechnicianDashboardViewModel
 import com.example.arcomtechapp.workflow.JobWorkflow
 import kotlinx.coroutines.Dispatchers
@@ -81,6 +82,7 @@ class TodayFragment : Fragment() {
     private fun renderToday(jobs: List<Job>) {
         val ordered = JobWorkflow.sortForTechnicianFlow(jobs)
         val active = JobWorkflow.activeJob(ordered)
+        val workflowStateRepo = requireContext().fieldDeskContainer().localWorkflowStateRepository()
 
         binding.textTodaySummary.text = if (ordered.isEmpty()) {
             getString(R.string.fielddesk_empty_today_summary)
@@ -99,6 +101,8 @@ class TodayFragment : Fragment() {
         binding.cardActiveJob.visibility = VISIBLE
         binding.textTodayActiveState.visibility = GONE
         val summary = JobWorkflow.summarize(active)
+        val workflowState = workflowStateRepo.getJobWorkflowState(active.id)
+        val closeout = JobExecutionAssist.completionSummary(active, workflowState.asJobProgress())
         binding.textActiveEyebrow.text = summary.headline
         binding.textActiveTitle.text = buildString {
             append("#${active.id}")
@@ -115,19 +119,25 @@ class TodayFragment : Fragment() {
         binding.buttonSecondaryAction.setOnClickListener { handleQuickAction(active, summary.quickActions.getOrNull(1)?.key) }
         binding.buttonOpenActiveJob.setOnClickListener { openJob(active) }
 
-        val checklistText = summary.checklist.joinToString("\n") {
+        val checklistItems = summary.checklist.toMutableList().apply {
+            add(com.example.arcomtechapp.workflow.WorkflowChecklistItem("Notes drafted", workflowState.hasDraft))
+            add(com.example.arcomtechapp.workflow.WorkflowChecklistItem("Photos captured", workflowState.photoCount > 0))
+        }
+        val checklistText = checklistItems.joinToString("\n") {
             "${if (it.done) "•" else "○"} ${it.label}"
         }
         binding.textChecklist.text = checklistText
 
-        val lastAction = storage.getLastJobAction()
-        val lastActionJobId = storage.getLastJobActionJobId()
+        val lastAction = workflowState.lastAction
         binding.textLastAction.visibility = if (lastAction.isNullOrBlank()) GONE else VISIBLE
         if (!lastAction.isNullOrBlank()) {
-            binding.textLastAction.text = if (lastActionJobId == active.id) {
+            binding.textLastAction.text = if (workflowState.appliesLastActionToThisJob) {
                 getString(R.string.fielddesk_last_action_this_job, lastAction)
             } else {
-                getString(R.string.fielddesk_last_action_other_job, lastAction, lastActionJobId)
+                getString(R.string.fielddesk_last_action_other_job, lastAction, workflowState.lastActionJobId)
+            }
+            if (!closeout.ready) {
+                binding.textLastAction.append("\n${closeout.headline}")
             }
         }
     }

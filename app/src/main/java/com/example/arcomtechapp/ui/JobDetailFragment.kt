@@ -22,7 +22,6 @@ import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
-import com.example.arcomtechapp.workflow.JobProgress
 import com.example.arcomtechapp.workflow.JobWorkflow
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -101,16 +100,8 @@ class JobDetailFragment : Fragment() {
 
     private fun renderJob(job: Job) {
         val summary = JobWorkflow.summarize(job)
-        val progress = storage.getLocalJobProgress(job.id)
-        val closeout = JobExecutionAssist.completionSummary(
-            job,
-            JobProgress(
-                noteDraftLength = progress.noteDraft?.length ?: 0,
-                notePendingSync = progress.notePendingSync,
-                photoCount = progress.photoCount,
-                lastPhotoLabel = progress.lastPhotoLabel
-            )
-        )
+        val workflowState = requireContext().fieldDeskContainer().localWorkflowStateRepository().getJobWorkflowState(job.id)
+        val closeout = JobExecutionAssist.completionSummary(job, workflowState.asJobProgress())
         binding.textJobId.text = job.id
         binding.textCustomerName.text = job.customerName
         binding.textJobStatus.text = "${summary.headline} • ${job.status}"
@@ -130,17 +121,17 @@ class JobDetailFragment : Fragment() {
             append(closeout.headline)
             append("\nNotes: ")
             append(
-                if ((progress.noteDraft?.length ?: 0) > 0) {
-                    "${progress.noteDraft?.length ?: 0} chars saved"
+                if (workflowState.hasDraft) {
+                    "${workflowState.noteDraft?.length ?: 0} chars saved"
                 } else {
                     "none yet"
                 }
             )
-            if (progress.notePendingSync) {
+            if (workflowState.notePendingSync) {
                 append(" • Pending sync")
             }
-            append(" • Photos: ${progress.photoCount}")
-            progress.lastPhotoLabel?.takeIf { it.isNotBlank() }?.let {
+            append(" • Photos: ${workflowState.photoCount}")
+            workflowState.lastPhotoLabel?.takeIf { it.isNotBlank() }?.let {
                 append("\nLast photo: $it")
             }
             if (closeout.blockers.isNotEmpty()) {
@@ -149,8 +140,8 @@ class JobDetailFragment : Fragment() {
             }
         }
         binding.textCloseoutStatus.text = buildString {
-            append("Outcome: ${progress.finalOutcome?.replace('_', ' ') ?: "not chosen"}")
-            progress.finalOutcomeNote?.takeIf { it.isNotBlank() }?.let {
+            append("Outcome: ${workflowState.finalOutcome?.replace('_', ' ') ?: "not chosen"}")
+            workflowState.finalOutcomeNote?.takeIf { it.isNotBlank() }?.let {
                 append("\nReason: $it")
             }
             if (closeout.requiredPhotoLabels.isNotEmpty()) {
@@ -195,7 +186,7 @@ class JobDetailFragment : Fragment() {
             showActionFeedback("No customer phone is available for this job.")
             return
         }
-        storage.saveLastJobAction(job.id, "Called customer")
+        requireContext().fieldDeskContainer().localWorkflowStateRepository().saveLastAction(job.id, "Called customer")
         startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${job.customerPhone}")))
     }
 
@@ -204,13 +195,13 @@ class JobDetailFragment : Fragment() {
             showActionFeedback("No mappable address is available for this job.")
             return
         }
-        storage.saveLastJobAction(job.id, "Opened navigation")
+        requireContext().fieldDeskContainer().localWorkflowStateRepository().saveLastAction(job.id, "Opened navigation")
         val mapUri = Uri.parse("geo:0,0?q=${Uri.encode(job.address)}")
         startActivity(Intent(Intent.ACTION_VIEW, mapUri))
     }
 
     private fun openNotes(job: Job) {
-        storage.saveLastJobAction(job.id, "Opened guided note")
+        requireContext().fieldDeskContainer().localWorkflowStateRepository().saveLastAction(job.id, "Opened guided note")
         parentFragmentManager.beginTransaction()
             .replace(R.id.content_frame, NotesFragment.newInstance(job))
             .addToBackStack(null)
@@ -218,7 +209,7 @@ class JobDetailFragment : Fragment() {
     }
 
     private fun openPhotos(job: Job) {
-        storage.saveLastJobAction(job.id, "Opened photo capture")
+        requireContext().fieldDeskContainer().localWorkflowStateRepository().saveLastAction(job.id, "Opened photo capture")
         parentFragmentManager.beginTransaction()
             .replace(R.id.content_frame, PhotosFragment.newInstance(job))
             .addToBackStack(null)
@@ -295,22 +286,16 @@ class JobDetailFragment : Fragment() {
     }
 
     private fun completeJob(job: Job) {
-        val progress = storage.getLocalJobProgress(job.id)
-        storage.setJobFinalOutcome(job.id, "completed", progress.noteDraft)
+        val workflowStateRepo = requireContext().fieldDeskContainer().localWorkflowStateRepository()
+        val workflowState = workflowStateRepo.getJobWorkflowState(job.id)
+        workflowStateRepo.setFinalOutcome(job.id, "completed", workflowState.noteDraft)
         val closeout = JobExecutionAssist.completionSummary(
             job,
-            JobProgress(
-                noteDraftLength = progress.noteDraft?.length ?: 0,
-                notePendingSync = progress.notePendingSync,
-                photoCount = progress.photoCount,
-                lastPhotoLabel = progress.lastPhotoLabel,
-                finalOutcome = storage.getJobFinalOutcome(job.id),
-                finalOutcomeNote = storage.getJobFinalOutcomeNote(job.id)
-            )
+            workflowStateRepo.getJobWorkflowState(job.id).asJobProgress()
         )
         if (!closeout.ready) {
             val blocker = closeout.blockers.firstOrNull() ?: closeout.headline
-            storage.saveLastJobAction(job.id, blocker)
+            workflowStateRepo.saveLastAction(job.id, blocker)
             Toast.makeText(requireContext(), blocker, Toast.LENGTH_SHORT).show()
             renderJob(job)
             return
@@ -364,7 +349,7 @@ class JobDetailFragment : Fragment() {
         lastHandledActionEventId = event.eventId
         if (event.result.success) {
             when (event.actionKey) {
-                "no_answer", "not_home", "unable_to_complete" -> storage.setJobFinalOutcome(
+                "no_answer", "not_home", "unable_to_complete" -> requireContext().fieldDeskContainer().localWorkflowStateRepository().setFinalOutcome(
                     event.job.id,
                     "unable_to_complete",
                     event.details
@@ -382,7 +367,7 @@ class JobDetailFragment : Fragment() {
         val message = result.message.ifBlank {
             if (result.success) "Action submitted." else "Action failed."
         }
-        storage.saveLastJobAction(job.id, message)
+        requireContext().fieldDeskContainer().localWorkflowStateRepository().saveLastAction(job.id, message)
         showActionFeedback(message, isError = !result.success)
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
     }
