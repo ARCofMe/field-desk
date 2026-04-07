@@ -17,7 +17,6 @@ import com.example.arcomtechapp.data.models.JobPartsCase
 import com.example.arcomtechapp.data.models.JobPhotoStatus
 import com.example.arcomtechapp.data.models.JobTimelineEntry
 import com.example.arcomtechapp.data.repo.TechnicianActionResult
-import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentJobDetailBinding
 import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
@@ -27,11 +26,10 @@ import com.example.arcomtechapp.workflow.JobProgress
 import com.example.arcomtechapp.workflow.JobWorkflow
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import com.example.arcomtechapp.viewmodel.JobActionEvent
 import com.example.arcomtechapp.viewmodel.JobDetailContext
 import com.example.arcomtechapp.viewmodel.JobDetailViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class JobDetailFragment : Fragment() {
 
@@ -47,6 +45,7 @@ class JobDetailFragment : Fragment() {
     private var partsCase: JobPartsCase? = null
     private var photoStatus: JobPhotoStatus? = null
     private var timeline: List<JobTimelineEntry> = emptyList()
+    private var lastHandledActionEventId: Long = Long.MIN_VALUE
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,6 +80,9 @@ class JobDetailFragment : Fragment() {
     private fun observeViewModel() {
         detailViewModel.context.observe(viewLifecycleOwner) { context ->
             applyJobContext(context)
+        }
+        detailViewModel.actionEvents.observe(viewLifecycleOwner) { event ->
+            handleActionEvent(event)
         }
         detailViewModel.error.observe(viewLifecycleOwner) { error ->
             if (!error.isNullOrBlank()) {
@@ -253,38 +255,12 @@ class JobDetailFragment : Fragment() {
             title = "Start work",
             hint = "Optional start note or work plan"
         ) { details ->
-            lifecycleScope.launch(Dispatchers.IO) {
-                val result = RepositoryProvider.fromContext(requireContext()).logWorkStart(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    job.id,
-                    details
-                )
-                withContext(Dispatchers.Main) {
-                    handleActionResult(job, result, refreshOnSuccess = true)
-                }
-            }
+            detailViewModel.logWorkStart(job, details)
         }
     }
 
     private fun performStatusAction(job: Job, actionKey: String, fallbackLabel: String) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val repo = RepositoryProvider.fromContext(requireContext())
-            val result = repo.updateJobStatus(
-                storage.getActiveBaseUrl(),
-                storage.getActiveApiKey(),
-                job.id,
-                actionKey
-            )
-            withContext(Dispatchers.Main) {
-                val normalized = if (result.success && result.message.isBlank()) {
-                    result.copy(message = fallbackLabel)
-                } else {
-                    result
-                }
-                handleActionResult(job, normalized, refreshOnSuccess = true)
-            }
-        }
+        detailViewModel.updateStatus(job, actionKey, fallbackLabel)
     }
 
     private fun promptForNoAnswer(job: Job) {
@@ -292,20 +268,7 @@ class JobDetailFragment : Fragment() {
             title = "No answer",
             hint = "Phone attempts or contact details"
         ) { details ->
-            lifecycleScope.launch(Dispatchers.IO) {
-                val result = RepositoryProvider.fromContext(requireContext()).reportNoAnswer(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    job.id,
-                    details
-                )
-                withContext(Dispatchers.Main) {
-                    if (result.success) {
-                        storage.setJobFinalOutcome(job.id, "unable_to_complete", details)
-                    }
-                    handleActionResult(job, result, refreshOnSuccess = true)
-                }
-            }
+            detailViewModel.reportNoAnswer(job, details)
         }
     }
 
@@ -314,20 +277,7 @@ class JobDetailFragment : Fragment() {
             title = "Not home",
             hint = "Proof-of-visit context or site details"
         ) { details ->
-            lifecycleScope.launch(Dispatchers.IO) {
-                val result = RepositoryProvider.fromContext(requireContext()).reportNotHome(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    job.id,
-                    details
-                )
-                withContext(Dispatchers.Main) {
-                    if (result.success) {
-                        storage.setJobFinalOutcome(job.id, "unable_to_complete", details)
-                    }
-                    handleActionResult(job, result, refreshOnSuccess = true)
-                }
-            }
+            detailViewModel.reportNotHome(job, details)
         }
     }
 
@@ -365,17 +315,7 @@ class JobDetailFragment : Fragment() {
             renderJob(job)
             return
         }
-        lifecycleScope.launch(Dispatchers.IO) {
-            val result = RepositoryProvider.fromContext(requireContext()).updateJobStatus(
-                storage.getActiveBaseUrl(),
-                storage.getActiveApiKey(),
-                job.id,
-                "complete"
-            )
-            withContext(Dispatchers.Main) {
-                handleActionResult(job, result, refreshOnSuccess = true)
-            }
-        }
+        detailViewModel.updateStatus(job, "complete")
     }
 
     private fun promptForUnableToComplete(job: Job) {
@@ -383,43 +323,12 @@ class JobDetailFragment : Fragment() {
             title = "Unable to complete",
             hint = "Explain what blocked closeout or completion"
         ) { reason ->
-            lifecycleScope.launch(Dispatchers.IO) {
-                val result = RepositoryProvider.fromContext(requireContext()).reportUnableToComplete(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    job.id,
-                    reason
-                )
-                withContext(Dispatchers.Main) {
-                    if (result.success) {
-                        storage.setJobFinalOutcome(job.id, "unable_to_complete", reason)
-                    }
-                    handleActionResult(job, result, refreshOnSuccess = true)
-                }
-            }
+            detailViewModel.reportUnableToComplete(job, reason)
         }
     }
 
     private fun performCallAhead(job: Job) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val result = RepositoryProvider.fromContext(requireContext()).logCallAhead(
-                storage.getActiveBaseUrl(),
-                storage.getActiveApiKey(),
-                job.id,
-                30
-            )
-            withContext(Dispatchers.Main) {
-                val normalized = if (result.success && result.message.isBlank()) {
-                    result.copy(message = "Call-ahead logged")
-                } else {
-                    result
-                }
-                handleActionResult(job, normalized, refreshOnSuccess = true)
-                if (normalized.success) {
-                    dialCustomer(job)
-                }
-            }
-        }
+        detailViewModel.logCallAhead(job, 30)
     }
 
     private fun promptForPartsRequest(job: Job) {
@@ -427,17 +336,7 @@ class JobDetailFragment : Fragment() {
             title = "Need part",
             hint = "Part number, symptom, vendor, or other field details"
         ) { details ->
-            lifecycleScope.launch(Dispatchers.IO) {
-                val result = RepositoryProvider.fromContext(requireContext()).createPartsRequest(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    job.id,
-                    details.ifBlank { "Requested from mobile technician workflow" }
-                )
-                withContext(Dispatchers.Main) {
-                    handleActionResult(job, result, refreshOnSuccess = true)
-                }
-            }
+            detailViewModel.createPartsRequest(job, details.ifBlank { "Requested from mobile technician workflow" })
         }
     }
 
@@ -447,18 +346,7 @@ class JobDetailFragment : Fragment() {
             hint = "Explain what office needs to quote or approve"
         ) { details ->
             val subtype = inferQuoteSubtype(details)
-            lifecycleScope.launch(Dispatchers.IO) {
-                val result = RepositoryProvider.fromContext(requireContext()).reportQuoteNeeded(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    job.id,
-                    details,
-                    subtype
-                )
-                withContext(Dispatchers.Main) {
-                    handleActionResult(job, result, refreshOnSuccess = true)
-                }
-            }
+            detailViewModel.reportQuoteNeeded(job, details, subtype)
         }
     }
 
@@ -467,30 +355,36 @@ class JobDetailFragment : Fragment() {
             title = "Need reschedule",
             hint = "Why this job needs dispatch follow-up"
         ) { reason ->
-            lifecycleScope.launch(Dispatchers.IO) {
-                val result = RepositoryProvider.fromContext(requireContext()).reportReschedule(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    job.id,
-                    reason
-                )
-                withContext(Dispatchers.Main) {
-                    handleActionResult(job, result, refreshOnSuccess = true)
-                }
-            }
+            detailViewModel.reportReschedule(job, reason)
         }
     }
 
-    private fun handleActionResult(job: Job, result: TechnicianActionResult, refreshOnSuccess: Boolean) {
+    private fun handleActionEvent(event: JobActionEvent) {
+        if (event.eventId == lastHandledActionEventId) return
+        lastHandledActionEventId = event.eventId
+        if (event.result.success) {
+            when (event.actionKey) {
+                "no_answer", "not_home", "unable_to_complete" -> storage.setJobFinalOutcome(
+                    event.job.id,
+                    "unable_to_complete",
+                    event.details
+                )
+            }
+        }
+        if (event.actionKey == "call_ahead" && event.result.success) {
+            dialCustomer(event.job)
+            return
+        }
+        handleActionResult(event.job, event.result)
+    }
+
+    private fun handleActionResult(job: Job, result: TechnicianActionResult) {
         val message = result.message.ifBlank {
             if (result.success) "Action submitted." else "Action failed."
         }
         storage.saveLastJobAction(job.id, message)
         showActionFeedback(message, isError = !result.success)
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-        if (result.success && refreshOnSuccess) {
-            detailViewModel.loadJobContext(job)
-        }
     }
 
     private fun showActionFeedback(message: String, isError: Boolean = true) {

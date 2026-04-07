@@ -11,6 +11,7 @@ import com.example.arcomtechapp.data.models.JobPartsCase
 import com.example.arcomtechapp.data.models.JobPhotoStatus
 import com.example.arcomtechapp.data.models.JobTimelineEntry
 import com.example.arcomtechapp.data.repo.FieldOpsRepository
+import com.example.arcomtechapp.data.repo.TechnicianActionResult
 import com.example.arcomtechapp.runtime.FieldDeskAppContainer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,6 +21,14 @@ data class JobDetailContext(
     val partsCase: JobPartsCase?,
     val photoStatus: JobPhotoStatus?,
     val timeline: List<JobTimelineEntry>
+)
+
+data class JobActionEvent(
+    val eventId: Long,
+    val job: Job,
+    val actionKey: String,
+    val details: String? = null,
+    val result: TechnicianActionResult
 )
 
 class JobDetailViewModel(
@@ -35,6 +44,9 @@ class JobDetailViewModel(
 
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
+
+    private val _actionEvents = MutableLiveData<JobActionEvent>()
+    val actionEvents: LiveData<JobActionEvent> = _actionEvents
 
     fun loadJobContext(seedJob: Job) {
         _loading.value = true
@@ -67,6 +79,97 @@ class JobDetailViewModel(
                 _error.postValue(formatError(e.message))
             }
             _loading.postValue(false)
+        }
+    }
+
+    fun logWorkStart(job: Job, details: String?) {
+        runAction(job = job, actionKey = "work_start", details = details) { session ->
+            repo.logWorkStart(session.baseUrl, session.apiKey, job.id, details)
+        }
+    }
+
+    fun updateStatus(job: Job, statusKey: String, fallbackSuccessMessage: String? = null) {
+        runAction(job = job, actionKey = statusKey) { session ->
+            val result = repo.updateJobStatus(session.baseUrl, session.apiKey, job.id, statusKey)
+            if (result.success && result.message.isBlank() && !fallbackSuccessMessage.isNullOrBlank()) {
+                result.copy(message = fallbackSuccessMessage)
+            } else {
+                result
+            }
+        }
+    }
+
+    fun reportNoAnswer(job: Job, details: String) {
+        runAction(job = job, actionKey = "no_answer", details = details) { session ->
+            repo.reportNoAnswer(session.baseUrl, session.apiKey, job.id, details)
+        }
+    }
+
+    fun reportNotHome(job: Job, details: String) {
+        runAction(job = job, actionKey = "not_home", details = details) { session ->
+            repo.reportNotHome(session.baseUrl, session.apiKey, job.id, details)
+        }
+    }
+
+    fun reportUnableToComplete(job: Job, reason: String) {
+        runAction(job = job, actionKey = "unable_to_complete", details = reason) { session ->
+            repo.reportUnableToComplete(session.baseUrl, session.apiKey, job.id, reason)
+        }
+    }
+
+    fun logCallAhead(job: Job, minutes: Int = 30) {
+        runAction(job = job, actionKey = "call_ahead") { session ->
+            val result = repo.logCallAhead(session.baseUrl, session.apiKey, job.id, minutes)
+            if (result.success && result.message.isBlank()) {
+                result.copy(message = "Call-ahead logged")
+            } else {
+                result
+            }
+        }
+    }
+
+    fun createPartsRequest(job: Job, details: String) {
+        runAction(job = job, actionKey = "parts", details = details) { session ->
+            repo.createPartsRequest(session.baseUrl, session.apiKey, job.id, details)
+        }
+    }
+
+    fun reportQuoteNeeded(job: Job, details: String, subtype: String) {
+        runAction(job = job, actionKey = "quote_needed", details = details) { session ->
+            repo.reportQuoteNeeded(session.baseUrl, session.apiKey, job.id, details, subtype)
+        }
+    }
+
+    fun reportReschedule(job: Job, reason: String) {
+        runAction(job = job, actionKey = "reschedule", details = reason) { session ->
+            repo.reportReschedule(session.baseUrl, session.apiKey, job.id, reason)
+        }
+    }
+
+    private fun runAction(
+        job: Job,
+        actionKey: String,
+        details: String? = null,
+        block: (FieldDeskSession) -> TechnicianActionResult
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = try {
+                block(sessionProvider())
+            } catch (e: Exception) {
+                TechnicianActionResult(false, formatError(e.message))
+            }
+            _actionEvents.postValue(
+                JobActionEvent(
+                    eventId = System.nanoTime(),
+                    job = job,
+                    actionKey = actionKey,
+                    details = details,
+                    result = result
+                )
+            )
+            if (result.success) {
+                loadJobContext(job)
+            }
         }
     }
 
