@@ -18,7 +18,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:text="Job ID"
-            android:textSize="20sp"
+            android:textSize="22sp"
             android:textColor="@color/brand_text"
             android:textStyle="bold" />
 
@@ -28,52 +28,17 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="Customer"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            android:textColor="@color/brand_subtle_text" />
 
         <TextView
             android:id="@+id/text_job_status"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="Status" />
-
-        <TextView
-            android:id="@+id/text_appointment"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="Appointment window" />
-
-        <TextView
-            android:id="@+id/text_distance"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="Distance" />
-
-        <TextView
-            android:id="@+id/text_parts_case"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Parts case"
-            android:textColor="@color/brand_subtle_text" />
-
-        <TextView
-            android:id="@+id/text_photo_compliance"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Photo compliance"
-            android:textColor="@color/brand_subtle_text" />
-
-        <TextView
-            android:id="@+id/text_timeline_preview"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Timeline"
-            android:textColor="@color/brand_subtle_text" />
+            android:text="Status"
+            android:textColor="@color/brand_accent"
+            android:textStyle="bold" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -152,48 +117,110 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <TextView
-            android:id="@+id/text_address"
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Address"
-            android:textStyle="bold" />
+            android:layout_marginTop="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/fielddesk_customer_context"
+                    android:textColor="@color/brand_text"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/text_appointment"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Appointment window"
+                    android:textColor="@color/brand_subtle_text" />
+
+                <TextView
+                    android:id="@+id/text_distance"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Distance"
+                    android:textColor="@color/brand_subtle_text" />
+
+                <TextView
+                    android:id="@+id/text_address"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Address"
+                    android:textColor="@color/brand_text"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/text_phone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Phone"
+                    android:textColor="@color/brand_subtle_text" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/button_call"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/fielddesk_action_call" />
+
+                    <Button
+                        android:id="@+id/button_navigate"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/fielddesk_action_navigate" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <TextView
-            android:id="@+id/text_phone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="Phone" />
-
-        <LinearLayout
+            android:id="@+id/text_parts_case"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:orientation="horizontal">
+            android:text="Parts case"
+            android:textColor="@color/brand_subtle_text" />
 
-            <Button
-                android:id="@+id/button_call"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Call" />
+        <TextView
+            android:id="@+id/text_photo_compliance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Photo compliance"
+            android:textColor="@color/brand_subtle_text" />
 
-            <Button
-                android:id="@+id/button_navigate"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:text="Navigate" />
-        </LinearLayout>
+        <TextView
+            android:id="@+id/text_timeline_preview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Timeline"
+            android:textColor="@color/brand_subtle_text" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Guided workflow"
+            android:text="@string/fielddesk_guided_workflow"
             android:textColor="@color/brand_text"
             android:textStyle="bold" />
 
@@ -208,7 +235,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Photos" />
+                android:text="@string/fielddesk_action_photos" />
 
             <Button
                 android:id="@+id/button_workflow_notes"
@@ -216,7 +243,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:text="Notes" />
+                android:text="@string/fielddesk_action_notes" />
         </LinearLayout>
 
         <LinearLayout
@@ -230,7 +257,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Need part" />
+                android:text="@string/fielddesk_action_need_part" />
 
             <Button
                 android:id="@+id/button_workflow_complete"
@@ -238,14 +265,14 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:text="Closeout" />
+                android:text="@string/fielddesk_action_closeout" />
         </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Field exceptions"
+            android:text="@string/fielddesk_field_exceptions"
             android:textColor="@color/brand_text"
             android:textStyle="bold" />
 
@@ -260,7 +287,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Start work" />
+                android:text="@string/fielddesk_action_start_work" />
 
             <Button
                 android:id="@+id/button_workflow_no_answer"
@@ -268,7 +295,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:text="No answer" />
+                android:text="@string/fielddesk_action_no_answer" />
 
             <Button
                 android:id="@+id/button_workflow_not_home"
@@ -276,7 +303,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:text="Not home" />
+                android:text="@string/fielddesk_action_not_home" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

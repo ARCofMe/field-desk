@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="Today"
+            android:text="@string/fielddesk_today_heading"
             android:textColor="@color/brand_text"
             android:textSize="26sp"
             android:textStyle="bold" />
@@ -28,9 +28,68 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Your field day should be one glance and two taps."
+            android:text="@string/fielddesk_today_intro"
             android:textColor="@color/brand_subtle_text"
             android:textSize="14sp" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardElevation="6dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/fielddesk_focus_bar_title"
+                    android:textColor="@color/brand_text"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/text_today_active_state"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/fielddesk_focus_bar_summary"
+                    android:textColor="@color/brand_subtle_text" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/button_today_photos"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/fielddesk_action_photos" />
+
+                    <Button
+                        android:id="@+id/button_today_notes"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/fielddesk_action_notes" />
+
+                    <Button
+                        android:id="@+id/button_today_settings"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/fielddesk_action_setup" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -53,7 +112,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Queue"
+                        android:text="@string/fielddesk_queue_label"
                         android:textColor="@color/brand_subtle_text" />
 
                     <TextView
@@ -83,7 +142,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Done&#10;Pending"
+                        android:text="@string/fielddesk_done_pending_label"
                         android:textColor="@color/brand_subtle_text" />
 
                     <TextView
@@ -140,7 +199,7 @@
                     android:id="@+id/text_active_eyebrow"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Active job"
+                    android:text="@string/fielddesk_active_job_eyebrow"
                     android:textColor="@color/brand_accent"
                     android:textStyle="bold" />
 
@@ -224,7 +283,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Open full job workflow" />
+                    android:text="@string/fielddesk_open_job_workflow" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -233,6 +292,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Open full queue" />
+            android:text="@string/fielddesk_open_queue" />
     </LinearLayout>
 </ScrollView>

@@ -15,8 +15,8 @@
                 android:gradientRadius="600dp"
                 android:centerX="70%"
                 android:centerY="20%"
-                android:startColor="#332AC9B0"
-                android:endColor="#0012314A" />
+                android:startColor="@color/brand_glow"
+                android:endColor="@color/brand_glow_fade" />
         </shape>
     </item>
 </layer-list>

@@ -6,20 +6,20 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.arcomtechapp.storage.Storage
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
-import androidx.appcompat.app.AppCompatDelegate
 import com.example.arcomtechapp.ui.settings.SettingsActivity
+import com.example.arcomtechapp.ui.theme.AppThemeResolver
 
 class SplashActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val storage = Storage(this)
+        setTheme(AppThemeResolver.resolveSplashTheme(this, storage))
         super.onCreate(savedInstanceState)
         // Ensure Python is started even if Application missed for some reason
         if (!Python.isStarted()) {
             Python.start(AndroidPlatform(this))
         }
 
-        val storage = Storage(this)
-        AppCompatDelegate.setDefaultNightMode(storage.getThemeMode())
         val configStatus = storage.getConfigStatus()
 
         val next = if (configStatus.complete) {

@@ -15,8 +15,15 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textColor="@color/brand_text"
-        android:text="Jobs"
+        android:text="@string/fielddesk_queue_title"
         android:textSize="14sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/fielddesk_queue_intro"
+        android:textColor="@color/brand_subtle_text" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -73,7 +80,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Date type:"
+            android:text="@string/fielddesk_date_type"
             android:textColor="@color/brand_text"
             android:layout_marginEnd="8dp" />
 
@@ -92,7 +99,7 @@
         android:layout_marginTop="8dp"
         android:backgroundTint="@color/brand_accent"
         android:textColor="@color/brand_primary_dark"
-        android:text="Refresh jobs" />
+        android:text="@string/fielddesk_refresh_queue" />
 
     <ProgressBar
         android:id="@+id/progress_jobs"
@@ -126,7 +133,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="12dp"
-        android:text="Optimize route for listed jobs"
+        android:text="@string/fielddesk_optimize_route"
         android:backgroundTint="@color/brand_accent"
         android:textColor="@color/brand_primary_dark" />
 

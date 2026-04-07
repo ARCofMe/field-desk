@@ -15,6 +15,7 @@ import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.data.repo.RepositoryProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.arcomtechapp.storage.Storage
+import com.example.arcomtechapp.ui.settings.SettingsActivity
 import com.example.arcomtechapp.viewmodel.TechnicianDashboardViewModel
 import com.example.arcomtechapp.workflow.JobWorkflow
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +45,21 @@ class TodayFragment : Fragment() {
                 .addToBackStack(null)
                 .commit()
         }
+        binding.buttonTodayPhotos.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.content_frame, PhotosFragment())
+                .addToBackStack(null)
+                .commit()
+        }
+        binding.buttonTodayNotes.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.content_frame, NotesFragment())
+                .addToBackStack(null)
+                .commit()
+        }
+        binding.buttonTodaySettings.setOnClickListener {
+            startActivity(android.content.Intent(requireContext(), SettingsActivity::class.java))
+        }
         observeViewModel()
         viewModel.loadDashboard(storage.getTechnicianId(), storage.getActiveBaseUrl(), storage.getActiveApiKey())
     }
@@ -66,9 +82,9 @@ class TodayFragment : Fragment() {
         val active = JobWorkflow.activeJob(ordered)
 
         binding.textTodaySummary.text = if (ordered.isEmpty()) {
-            "No scheduled work is loaded right now."
+            getString(R.string.fielddesk_empty_today_summary)
         } else {
-            "${ordered.size} jobs loaded. Focus the next tap on the highest-value action, not the full list."
+            resources.getQuantityString(R.plurals.fielddesk_loaded_jobs_summary, ordered.size, ordered.size)
         }
         binding.textQueueCount.text = ordered.size.toString()
         binding.textQueueComplete.text = ordered.count { it.status.contains("complete", ignoreCase = true) }.toString()
@@ -76,9 +92,11 @@ class TodayFragment : Fragment() {
 
         if (active == null) {
             binding.cardActiveJob.visibility = GONE
+            binding.textTodayActiveState.visibility = VISIBLE
             return
         }
         binding.cardActiveJob.visibility = VISIBLE
+        binding.textTodayActiveState.visibility = GONE
         val summary = JobWorkflow.summarize(active)
         binding.textActiveEyebrow.text = summary.headline
         binding.textActiveTitle.text = buildString {
@@ -106,9 +124,9 @@ class TodayFragment : Fragment() {
         binding.textLastAction.visibility = if (lastAction.isNullOrBlank()) GONE else VISIBLE
         if (!lastAction.isNullOrBlank()) {
             binding.textLastAction.text = if (lastActionJobId == active.id) {
-                "Last action on this job: $lastAction"
+                getString(R.string.fielddesk_last_action_this_job, lastAction)
             } else {
-                "Last local action: $lastAction on job #$lastActionJobId"
+                getString(R.string.fielddesk_last_action_other_job, lastAction, lastActionJobId)
             }
         }
     }

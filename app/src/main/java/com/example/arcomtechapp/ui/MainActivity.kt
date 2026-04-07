@@ -11,6 +11,7 @@ import androidx.drawerlayout.widget.DrawerLayout
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.ui.settings.SettingsActivity
+import com.example.arcomtechapp.ui.theme.AppThemeResolver
 import com.google.android.material.navigation.NavigationView
 
 class MainActivity : AppCompatActivity(),
@@ -19,10 +20,12 @@ class MainActivity : AppCompatActivity(),
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var navView: NavigationView
     private lateinit var storage: Storage
+    private var appliedThemeMode: Int = Int.MIN_VALUE
 
     override fun onCreate(savedInstanceState: Bundle?) {
         storage = Storage(this)
-        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(storage.getThemeMode())
+        appliedThemeMode = storage.getThemeMode()
+        setTheme(AppThemeResolver.resolveAppTheme(this, storage))
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
@@ -64,6 +67,10 @@ class MainActivity : AppCompatActivity(),
 
     override fun onResume() {
         super.onResume()
+        if (appliedThemeMode != storage.getThemeMode()) {
+            recreate()
+            return
+        }
         updateNavHeader()
         if (!storage.getConfigStatus().complete) {
             startActivity(Intent(this, SettingsActivity::class.java).apply {
@@ -102,9 +109,9 @@ class MainActivity : AppCompatActivity(),
         val title = headerView.findViewById<android.widget.TextView>(R.id.header_title)
         val subtitle = headerView.findViewById<android.widget.TextView>(R.id.header_subtitle)
         val logo = headerView.findViewById<android.widget.ImageView>(R.id.header_logo)
-        title.text = storage.getTechnicianName().orEmpty().ifBlank { "ARCoM Tech" }
+        title.text = storage.getTechnicianName().orEmpty().ifBlank { getString(R.string.fielddesk_nav_title) }
         val activeBaseUrl = storage.getActiveBaseUrl()
-        subtitle.text = activeBaseUrl?.takeIf { it.isNotBlank() } ?: "Setup required"
+        subtitle.text = activeBaseUrl?.takeIf { it.isNotBlank() } ?: getString(R.string.fielddesk_setup_required)
         logo.setImageResource(R.drawable.arcom_logo_full)
     }
 }

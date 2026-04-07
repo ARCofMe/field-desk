@@ -2,13 +2,13 @@
 <resources>
 
     <!-- AppCompat/MaterialComponents theme without an action bar; MainActivity supplies its own Toolbar -->
-    <style name="Theme.ARCoMTechApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.ARCoMTechApp" parent="Theme.MaterialComponents.NoActionBar">
         <item name="colorPrimary">@color/brand_primary</item>
         <item name="colorPrimaryVariant">@color/brand_primary_dark</item>
         <item name="colorOnPrimary">@color/brand_text</item>
         <item name="colorSecondary">@color/brand_accent</item>
         <item name="colorSecondaryVariant">@color/brand_accent_dark</item>
-        <item name="colorOnSecondary">@color/brand_primary_dark</item>
+        <item name="colorOnSecondary">@color/brand_button_text</item>
         <item name="android:statusBarColor">@color/brand_primary_dark</item>
         <item name="android:navigationBarColor">@color/brand_primary_dark</item>
         <item name="android:windowBackground">@color/brand_surface</item>
@@ -19,9 +19,15 @@
         <item name="switchStyle">@style/Widget.ARCoM.Switch</item>
     </style>
 
+    <style name="Theme.ARCoMTechApp.Light" parent="Theme.ARCoMTechApp" />
+
+    <style name="Theme.ARCoMTechApp.Dark" parent="Theme.ARCoMTechApp" />
+
     <style name="Widget.ARCoM.Card" parent="Widget.MaterialComponents.CardView">
         <item name="cardBackgroundColor">@color/brand_surface_light</item>
         <item name="cardElevation">4dp</item>
+        <item name="strokeColor">@color/brand_card_stroke</item>
+        <item name="strokeWidth">1dp</item>
         <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.Medium</item>
     </style>
 
@@ -44,7 +50,11 @@
     </style>
 
     <!-- Splash uses a drawable window background to show the full logo -->
-    <style name="Theme.ARCoMTechApp.Splash" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.ARCoMTechApp.Splash" parent="Theme.MaterialComponents.NoActionBar">
         <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
+
+    <style name="Theme.ARCoMTechApp.Splash.Light" parent="Theme.ARCoMTechApp.Splash" />
+
+    <style name="Theme.ARCoMTechApp.Splash.Dark" parent="Theme.ARCoMTechApp.Splash" />
 </resources>

@@ -12,7 +12,7 @@
         android:layout_width="140dp"
         android:layout_height="52dp"
         android:adjustViewBounds="true"
-        android:contentDescription="ARCoM logo"
+        android:contentDescription="@string/fielddesk_logo_content_description"
         android:src="@drawable/arcom_logo" />
 
     <TextView
@@ -20,7 +20,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="ARCoM Tech App"
+        android:text="@string/fielddesk_nav_title"
         android:textColor="@color/brand_text"
         android:textSize="18sp"
         android:textStyle="bold" />
@@ -29,6 +29,6 @@
         android:id="@+id/header_subtitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="BlueFolder tools"
+        android:text="@string/fielddesk_nav_subtitle"
         android:textColor="@color/brand_subtle_text" />
 </LinearLayout>

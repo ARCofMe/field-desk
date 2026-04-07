@@ -10,6 +10,7 @@ import com.example.arcomtechapp.data.repo.OpsHubFieldOpsRepository
 import com.example.arcomtechapp.data.repo.FieldOpsRepository
 import com.example.arcomtechapp.databinding.ActivitySettingsBinding
 import com.example.arcomtechapp.storage.Storage
+import com.example.arcomtechapp.ui.theme.AppThemeResolver
 import com.google.android.material.appbar.MaterialToolbar
 import java.text.DateFormat
 import java.util.Date
@@ -23,10 +24,12 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var storage: Storage
     private var suppressThemeToggle = false
     private var suppressBackendToggle = false
+    private var appliedThemeMode: Int = Int.MIN_VALUE
 
     override fun onCreate(savedInstanceState: Bundle?) {
         storage = Storage(this)
-        AppCompatDelegate.setDefaultNightMode(storage.getThemeMode())
+        appliedThemeMode = storage.getThemeMode()
+        setTheme(AppThemeResolver.resolveAppTheme(this, storage))
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -67,13 +70,7 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.toggleTheme.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked || suppressThemeToggle) return@addOnButtonCheckedListener
-            val mode = when (checkedId) {
-                binding.buttonThemeLight.id -> AppCompatDelegate.MODE_NIGHT_NO
-                binding.buttonThemeDark.id -> AppCompatDelegate.MODE_NIGHT_YES
-                else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-            }
-            storage.setThemeMode(mode)
-            AppCompatDelegate.setDefaultNightMode(mode)
+            binding.textTestResult.text = "Theme selection changed. Tap Save settings, then relaunch the app."
         }
 
         binding.buttonManualSync.setOnClickListener {
@@ -107,16 +104,24 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun saveSettings() {
+        val previousThemeMode = storage.getThemeMode()
         storage.saveApiKey(binding.inputApiKey.text?.toString()?.trim().orEmpty().ifBlank { null })
         storage.saveBaseUrl(binding.inputBaseUrl.text?.toString()?.trim().orEmpty().ifBlank { null })
         storage.saveOpsHubBaseUrl(binding.inputOpsHubBaseUrl.text?.toString()?.trim().orEmpty().ifBlank { null })
         storage.saveOpsHubApiKey(binding.inputOpsHubApiKey.text?.toString()?.trim().orEmpty().ifBlank { null })
+        storage.setThemeMode(selectedThemeMode())
         storage.saveTechnician(
             binding.inputTechnicianName.text?.toString()?.trim().orEmpty().ifBlank { null },
             binding.inputTechnicianId.text?.toString()?.trim().orEmpty().ifBlank { null }
         )
         // Switches already persist immediately.
         updateStatus()
+        if (previousThemeMode != selectedThemeMode()) {
+            binding.textTestResult.text = "Settings saved. Applying FieldDesk appearance..."
+            recreate()
+            return
+        }
+        binding.textTestResult.text = "Settings saved."
     }
 
     private fun loadSettings() {
@@ -174,6 +179,14 @@ class SettingsActivity : AppCompatActivity() {
         suppressThemeToggle = false
     }
 
+    private fun selectedThemeMode(): Int {
+        return when (binding.toggleTheme.checkedButtonId) {
+            binding.buttonThemeLight.id -> AppCompatDelegate.MODE_NIGHT_NO
+            binding.buttonThemeDark.id -> AppCompatDelegate.MODE_NIGHT_YES
+            else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        }
+    }
+
     private fun updateBackendToggle(mode: Storage.BackendMode) {
         val buttonId = when (mode) {
             Storage.BackendMode.OPS_HUB -> binding.buttonBackendOpshub.id
@@ -217,7 +230,6 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
     }
-
     companion object {
         const val EXTRA_REQUIRE_SETUP = "require_setup"
     }

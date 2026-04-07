@@ -4,23 +4,23 @@
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_dashboard"
-            android:title="Today" />
+            android:title="@string/fielddesk_today_heading" />
 
         <item
             android:id="@+id/nav_jobs"
-            android:title="Jobs" />
+            android:title="@string/fielddesk_queue_title" />
 
         <item
             android:id="@+id/nav_photos"
-            android:title="Photos" />
+            android:title="@string/fielddesk_action_photos" />
 
         <item
             android:id="@+id/nav_notes"
-            android:title="Notes" />
+            android:title="@string/fielddesk_action_notes" />
 
         <item
             android:id="@+id/nav_settings"
-            android:title="Settings" />
+            android:title="@string/settings_title" />
     </group>
 
 </menu>

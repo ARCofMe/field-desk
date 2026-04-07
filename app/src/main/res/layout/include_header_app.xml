@@ -10,7 +10,7 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:adjustViewBounds="true"
-        android:contentDescription="ARCoM logo"
+        android:contentDescription="@string/fielddesk_logo_content_description"
         android:src="@drawable/arcom_logo_sm" />
 
     <LinearLayout
@@ -24,7 +24,7 @@
             android:id="@+id/text_header_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Appliance Repair Center"
+            android:text="@string/fielddesk_header_title"
             android:textColor="@color/brand_subtle_text"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -33,7 +33,7 @@
             android:id="@+id/text_header_subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Tech App"
+            android:text="@string/fielddesk_header_subtitle"
             android:textColor="@color/brand_text"
             android:textSize="14sp" />
     </LinearLayout>
