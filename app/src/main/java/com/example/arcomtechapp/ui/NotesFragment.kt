@@ -6,31 +6,28 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.widget.doAfterTextChanged
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.databinding.FragmentNotesBinding
 import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
-import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
 import com.example.arcomtechapp.viewmodel.JobWorkflowViewModel
+import com.example.arcomtechapp.viewmodel.SelectedJobViewModel
 
 class NotesFragment : Fragment() {
 
     private var _binding: FragmentNotesBinding? = null
     private val binding get() = _binding!!
+    private val selectedJobViewModel: SelectedJobViewModel by activityViewModels()
     private val workflowViewModel: JobWorkflowViewModel by viewModels {
         JobWorkflowViewModel.Factory(requireContext().fieldDeskContainer())
     }
     private lateinit var storage: Storage
     private var job: Job? = null
     private var suppressDraftWatcher: Boolean = false
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        job = arguments?.serializableCompat(ARG_JOB)
-    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentNotesBinding.inflate(inflater, container, false)
@@ -49,6 +46,16 @@ class NotesFragment : Fragment() {
         applyTemplateLabels()
         binding.buttonSendNote.text = "Sync note to Ops Hub"
         observeWorkflowState()
+        selectedJobViewModel.selectedJob.observe(viewLifecycleOwner) { state ->
+            val selectedJob = state.job ?: return@observe
+            if (selectedJob.id != job?.id) {
+                job = selectedJob
+                binding.textNotesMeta.text = buildMeta()
+                applyTemplateLabels()
+                workflowViewModel.load(selectedJob)
+            }
+        }
+        job = selectedJobViewModel.currentJob()
         job?.let { workflowViewModel.load(it) }
         binding.inputNote.doAfterTextChanged { text ->
             if (suppressDraftWatcher) return@doAfterTextChanged
@@ -188,18 +195,6 @@ class NotesFragment : Fragment() {
         binding.inputNote.setSelection(updated.length)
         binding.textNoteGuidance.text = buildNoteGuidance()
         updateDraftStatus(workflowViewModel.workflowState.value)
-    }
-
-    companion object {
-        private const val ARG_JOB = "arg_job"
-
-        fun newInstance(job: Job): NotesFragment {
-            val fragment = NotesFragment()
-            fragment.arguments = Bundle().apply {
-                putSerializable(ARG_JOB, job)
-            }
-            return fragment
-        }
     }
 
     override fun onDestroyView() {

@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.example.arcomtechapp.data.models.Job
@@ -17,15 +18,16 @@ import com.example.arcomtechapp.data.repo.PhotoUploadRequest
 import com.example.arcomtechapp.databinding.FragmentPhotosBinding
 import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
-import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
 import java.io.ByteArrayOutputStream
 import com.example.arcomtechapp.viewmodel.JobWorkflowViewModel
+import com.example.arcomtechapp.viewmodel.SelectedJobViewModel
 
 class PhotosFragment : Fragment() {
 
     private var _binding: FragmentPhotosBinding? = null
     private val binding get() = _binding!!
+    private val selectedJobViewModel: SelectedJobViewModel by activityViewModels()
     private val workflowViewModel: JobWorkflowViewModel by viewModels {
         JobWorkflowViewModel.Factory(requireContext().fieldDeskContainer())
     }
@@ -34,11 +36,6 @@ class PhotosFragment : Fragment() {
     private var selectedPromptIndex: Int = 0
     private var livePhotoStatus: JobPhotoStatus? = null
     private var pendingUpload: PhotoUploadRequest? = null
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        job = arguments?.serializableCompat(ARG_JOB)
-    }
 
     private val cameraLauncher = registerForActivityResult(
         ActivityResultContracts.TakePicturePreview()
@@ -80,6 +77,17 @@ class PhotosFragment : Fragment() {
         }
         bindPromptButtons()
         observeWorkflowState()
+        selectedJobViewModel.selectedJob.observe(viewLifecycleOwner) { state ->
+            val selectedJob = state.job ?: return@observe
+            if (selectedJob.id != job?.id) {
+                job = selectedJob
+                binding.textPhotoConfig.text = buildConfigText()
+                binding.textPhotoJob.text = buildJobHeader()
+                updatePhotoPromptState()
+                renderProgress()
+                workflowViewModel.load(selectedJob)
+            }
+        }
 
         binding.buttonCamera.setOnClickListener { cameraLauncher.launch(null) }
         binding.buttonGallery.setOnClickListener { galleryLauncher.launch("image/*") }
@@ -111,6 +119,7 @@ class PhotosFragment : Fragment() {
         updatePhotoPromptState()
         renderProgress()
         updateStatus("Ready for guided photo capture")
+        job = selectedJobViewModel.currentJob()
         job?.let { workflowViewModel.load(it) }
     }
 
@@ -294,18 +303,6 @@ class PhotosFragment : Fragment() {
             .trim('-')
             .ifBlank { "photo" }
         return "sr-$jobId-$label.$extension"
-    }
-
-    companion object {
-        private const val ARG_JOB = "arg_job"
-
-        fun newInstance(job: Job): PhotosFragment {
-            val fragment = PhotosFragment()
-            fragment.arguments = Bundle().apply {
-                putSerializable(ARG_JOB, job)
-            }
-            return fragment
-        }
     }
 
     override fun onDestroyView() {

@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
@@ -19,6 +20,7 @@ import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentJobsBinding
 import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
+import com.example.arcomtechapp.viewmodel.SelectedJobViewModel
 import com.example.arcomtechapp.viewmodel.JobsViewModel
 import com.example.arcomtechapp.workflow.JobWorkflow
 import java.time.LocalDate
@@ -37,6 +39,7 @@ class JobsFragment : Fragment() {
 
     private var _binding: FragmentJobsBinding? = null
     private val binding get() = _binding!!
+    private val selectedJobViewModel: SelectedJobViewModel by activityViewModels()
     private val viewModel: JobsViewModel by viewModels {
         JobsViewModel.Factory(RepositoryProvider.fromContext(requireContext()))
     }
@@ -68,8 +71,9 @@ class JobsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         adapter = JobAdapter { job ->
+            selectedJobViewModel.select(job)
             parentFragmentManager.beginTransaction()
-                .replace(R.id.content_frame, JobDetailFragment.newInstance(job))
+                .replace(R.id.content_frame, JobDetailFragment())
                 .addToBackStack(null)
                 .commit()
         }

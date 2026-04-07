@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.example.arcomtechapp.databinding.FragmentTodayBinding
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
@@ -18,6 +19,7 @@ import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.ui.settings.SettingsActivity
 import com.example.arcomtechapp.workflow.JobExecutionAssist
+import com.example.arcomtechapp.viewmodel.SelectedJobViewModel
 import com.example.arcomtechapp.viewmodel.TechnicianDashboardViewModel
 import com.example.arcomtechapp.workflow.JobWorkflow
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +30,7 @@ class TodayFragment : Fragment() {
 
     private var _binding: FragmentTodayBinding? = null
     private val binding get() = _binding!!
+    private val selectedJobViewModel: SelectedJobViewModel by activityViewModels()
     private val viewModel: TechnicianDashboardViewModel by viewModels {
         TechnicianDashboardViewModel.Factory(RepositoryProvider.fromContext(requireContext()))
     }
@@ -148,15 +151,17 @@ class TodayFragment : Fragment() {
             "navigate", "next_job" -> openJob(job, launchNavigation = true)
             "notes" -> {
                 storage.saveLastJobAction(job.id, "Opened guided note")
+                selectedJobViewModel.select(job)
                 parentFragmentManager.beginTransaction()
-                    .replace(R.id.content_frame, NotesFragment.newInstance(job))
+                    .replace(R.id.content_frame, NotesFragment())
                     .addToBackStack(null)
                     .commit()
             }
             "photos" -> {
                 storage.saveLastJobAction(job.id, "Opened photo workflow")
+                selectedJobViewModel.select(job)
                 parentFragmentManager.beginTransaction()
-                    .replace(R.id.content_frame, PhotosFragment.newInstance(job))
+                    .replace(R.id.content_frame, PhotosFragment())
                     .addToBackStack(null)
                     .commit()
             }
@@ -185,8 +190,9 @@ class TodayFragment : Fragment() {
     }
 
     private fun openJob(job: Job, launchCall: Boolean = false, launchNavigation: Boolean = false) {
+        selectedJobViewModel.select(job, launchCallOnOpen = launchCall, launchNavigationOnOpen = launchNavigation)
         parentFragmentManager.beginTransaction()
-            .replace(R.id.content_frame, JobDetailFragment.newInstance(job, launchCall, launchNavigation))
+            .replace(R.id.content_frame, JobDetailFragment())
             .addToBackStack(null)
             .commit()
     }

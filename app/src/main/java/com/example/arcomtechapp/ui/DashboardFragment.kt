@@ -8,17 +8,20 @@ import android.widget.Toast
 import android.content.Intent
 import android.net.Uri
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.databinding.FragmentDashboardBinding
 import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
+import com.example.arcomtechapp.viewmodel.SelectedJobViewModel
 import com.example.arcomtechapp.viewmodel.TechnicianDashboardViewModel
 
 class DashboardFragment : Fragment() {
 
     private var _binding: FragmentDashboardBinding? = null
     private val binding get() = _binding!!
+    private val selectedJobViewModel: SelectedJobViewModel by activityViewModels()
     private val viewModel: TechnicianDashboardViewModel by viewModels {
         TechnicianDashboardViewModel.Factory(requireContext().fieldDeskContainer().repository())
     }
@@ -38,7 +41,8 @@ class DashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         adapter = JobAdapter { job ->
-            openFragment(JobDetailFragment.newInstance(job))
+            selectedJobViewModel.select(job)
+            openFragment(JobDetailFragment())
         }
         binding.recyclerTodayJobs.adapter = adapter
 

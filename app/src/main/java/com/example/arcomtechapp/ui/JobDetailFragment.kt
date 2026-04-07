@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.Fragment
 import android.widget.Toast
 import androidx.core.view.isVisible
@@ -20,7 +21,6 @@ import com.example.arcomtechapp.data.repo.TechnicianActionResult
 import com.example.arcomtechapp.databinding.FragmentJobDetailBinding
 import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
-import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
 import com.example.arcomtechapp.workflow.JobWorkflow
 import androidx.fragment.app.viewModels
@@ -28,12 +28,14 @@ import androidx.lifecycle.lifecycleScope
 import com.example.arcomtechapp.viewmodel.JobActionEvent
 import com.example.arcomtechapp.viewmodel.JobDetailContext
 import com.example.arcomtechapp.viewmodel.JobDetailViewModel
+import com.example.arcomtechapp.viewmodel.SelectedJobViewModel
 import kotlinx.coroutines.Dispatchers
 
 class JobDetailFragment : Fragment() {
 
     private var _binding: FragmentJobDetailBinding? = null
     private val binding get() = _binding!!
+    private val selectedJobViewModel: SelectedJobViewModel by activityViewModels()
     private val detailViewModel: JobDetailViewModel by viewModels {
         JobDetailViewModel.Factory(requireContext().fieldDeskContainer())
     }
@@ -48,9 +50,10 @@ class JobDetailFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        job = arguments?.serializableCompat(ARG_JOB)
-        launchCallOnOpen = arguments?.getBoolean(ARG_LAUNCH_CALL, false) == true
-        launchNavigationOnOpen = arguments?.getBoolean(ARG_LAUNCH_NAVIGATION, false) == true
+        val selectedState = selectedJobViewModel.selectedJob.value
+        job = selectedState?.job
+        launchCallOnOpen = selectedState?.launchCallOnOpen == true
+        launchNavigationOnOpen = selectedState?.launchNavigationOnOpen == true
     }
 
     override fun onCreateView(
@@ -66,6 +69,19 @@ class JobDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         observeViewModel()
+        selectedJobViewModel.selectedJob.observe(viewLifecycleOwner) { state ->
+            val selectedJob = state.job
+            if (selectedJob != null && selectedJob.id != job?.id) {
+                job = selectedJob
+                renderJob(selectedJob)
+                detailViewModel.loadJobContext(selectedJob)
+            }
+            if (state.launchCallOnOpen || state.launchNavigationOnOpen) {
+                launchCallOnOpen = state.launchCallOnOpen
+                launchNavigationOnOpen = state.launchNavigationOnOpen
+                selectedJobViewModel.consumeLaunchFlags()
+            }
+        }
         job?.let { renderJob(it) }
         job?.let { detailViewModel.loadJobContext(it) }
     }
@@ -202,16 +218,18 @@ class JobDetailFragment : Fragment() {
 
     private fun openNotes(job: Job) {
         requireContext().fieldDeskContainer().localWorkflowStateRepository().saveLastAction(job.id, "Opened guided note")
+        selectedJobViewModel.select(job)
         parentFragmentManager.beginTransaction()
-            .replace(R.id.content_frame, NotesFragment.newInstance(job))
+            .replace(R.id.content_frame, NotesFragment())
             .addToBackStack(null)
             .commit()
     }
 
     private fun openPhotos(job: Job) {
         requireContext().fieldDeskContainer().localWorkflowStateRepository().saveLastAction(job.id, "Opened photo capture")
+        selectedJobViewModel.select(job)
         parentFragmentManager.beginTransaction()
-            .replace(R.id.content_frame, PhotosFragment.newInstance(job))
+            .replace(R.id.content_frame, PhotosFragment())
             .addToBackStack(null)
             .commit()
     }
@@ -478,19 +496,4 @@ class JobDetailFragment : Fragment() {
         _binding = null
     }
 
-    companion object {
-        private const val ARG_JOB = "arg_job"
-        private const val ARG_LAUNCH_CALL = "arg_launch_call"
-        private const val ARG_LAUNCH_NAVIGATION = "arg_launch_navigation"
-
-        fun newInstance(job: Job, launchCall: Boolean = false, launchNavigation: Boolean = false): JobDetailFragment {
-            val fragment = JobDetailFragment()
-            fragment.arguments = Bundle().apply {
-                putSerializable(ARG_JOB, job)
-                putBoolean(ARG_LAUNCH_CALL, launchCall)
-                putBoolean(ARG_LAUNCH_NAVIGATION, launchNavigation)
-            }
-            return fragment
-        }
-    }
 }
