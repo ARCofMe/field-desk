@@ -7,22 +7,22 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
+import androidx.fragment.app.viewModels
 import com.example.arcomtechapp.data.models.Job
-import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentNotesBinding
+import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
-import com.example.arcomtechapp.workflow.JobProgress
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.example.arcomtechapp.viewmodel.JobWorkflowViewModel
 
 class NotesFragment : Fragment() {
 
     private var _binding: FragmentNotesBinding? = null
     private val binding get() = _binding!!
+    private val workflowViewModel: JobWorkflowViewModel by viewModels {
+        JobWorkflowViewModel.Factory(requireContext().fieldDeskContainer())
+    }
     private lateinit var storage: Storage
     private var job: Job? = null
     private var suppressDraftWatcher: Boolean = false
@@ -48,47 +48,25 @@ class NotesFragment : Fragment() {
         binding.textTemplateFour.setOnClickListener { appendTemplate(3) }
         applyTemplateLabels()
         binding.buttonSendNote.text = "Sync note to Ops Hub"
-        suppressDraftWatcher = true
-        binding.inputNote.setText(storage.getJobNotesDraft(job?.id).orEmpty())
-        suppressDraftWatcher = false
+        observeWorkflowState()
+        job?.let { workflowViewModel.load(it) }
         binding.inputNote.doAfterTextChanged { text ->
             if (suppressDraftWatcher) return@doAfterTextChanged
-            storage.setJobNotesDraft(job?.id, text?.toString())
-            val currentJobId = job?.id
-            if (!currentJobId.isNullOrBlank() && !text.isNullOrBlank()) {
-                storage.setJobNoteSyncState(
-                    currentJobId,
-                    pending = true,
-                    message = "Draft changed locally. Sync note to Ops Hub."
-                )
-            }
-            updateDraftStatus()
+            job?.let { workflowViewModel.onNoteDraftChanged(it, text?.toString()) }
         }
-        updateDraftStatus()
 
         binding.buttonSaveDraft.setOnClickListener {
             val note = binding.inputNote.text?.toString().orEmpty()
-            storage.setJobNotesDraft(job?.id, note)
-            if (job != null) {
-                storage.saveLastJobAction(job?.id, "Saved guided note draft")
-                storage.setJobNoteSyncState(job?.id, pending = true, message = "Draft saved locally. Sync note to Ops Hub.")
-            } else {
-                storage.setNotesDraft(note)
-            }
-            updateDraftStatus()
-            Toast.makeText(requireContext(), "Draft saved locally", Toast.LENGTH_SHORT).show()
+            val currentJob = job ?: return@setOnClickListener
+            workflowViewModel.saveDraft(currentJob, note)
         }
 
         binding.buttonClearDraft.setOnClickListener {
-            storage.clearJobNotesDraft(job?.id)
-            storage.clearJobNoteSyncState(job?.id)
-            if (job == null) {
-                storage.clearNotesDraft()
-            }
+            val currentJob = job ?: return@setOnClickListener
+            workflowViewModel.clearDraft(currentJob)
             suppressDraftWatcher = true
             binding.inputNote.setText("")
             suppressDraftWatcher = false
-            updateDraftStatus()
         }
 
         binding.buttonSendNote.setOnClickListener {
@@ -102,26 +80,26 @@ class NotesFragment : Fragment() {
                     return@setOnClickListener
                 }
                 binding.buttonSendNote.isEnabled = false
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val result = RepositoryProvider.fromContext(requireContext()).submitJobNote(
-                        storage.getActiveBaseUrl(),
-                        storage.getActiveApiKey(),
-                        currentJob.id,
-                        note
-                    )
-                    withContext(Dispatchers.Main) {
-                        binding.buttonSendNote.isEnabled = true
-                        storage.saveLastJobAction(currentJob.id, result.message)
-                        storage.setJobNotesDraft(currentJob.id, note)
-                        if (result.success) {
-                            storage.setJobNoteSyncState(currentJob.id, pending = false, message = result.message)
-                        } else {
-                            storage.setJobNoteSyncState(currentJob.id, pending = true, message = result.message)
-                        }
-                        Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
-                        updateDraftStatus()
-                    }
-                }
+                workflowViewModel.syncNote(currentJob, note)
+            }
+        }
+    }
+
+    private fun observeWorkflowState() {
+        workflowViewModel.workflowState.observe(viewLifecycleOwner) { state ->
+            suppressDraftWatcher = true
+            if (binding.inputNote.text?.toString() != state.noteDraft.orEmpty()) {
+                binding.inputNote.setText(state.noteDraft.orEmpty())
+                binding.inputNote.setSelection(binding.inputNote.text?.length ?: 0)
+            }
+            suppressDraftWatcher = false
+            updateDraftStatus(state)
+            binding.textNoteGuidance.text = buildNoteGuidance(state)
+        }
+        workflowViewModel.actionMessage.observe(viewLifecycleOwner) { message ->
+            if (!message.isNullOrBlank()) {
+                binding.buttonSendNote.isEnabled = true
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -146,31 +124,20 @@ class NotesFragment : Fragment() {
         return parts.joinToString(" • ")
     }
 
-    private fun updateDraftStatus() {
-        val draft = storage.getJobNotesDraft(job?.id)
-        val progress = storage.getLocalJobProgress(job?.id)
+    private fun updateDraftStatus(state: com.example.arcomtechapp.data.models.JobWorkflowState?) {
+        val draft = state?.noteDraft
         val closeout = job?.let {
-            JobExecutionAssist.completionSummary(
-                it,
-                JobProgress(
-                    noteDraftLength = draft?.length ?: 0,
-                    notePendingSync = progress.notePendingSync,
-                    photoCount = progress.photoCount,
-                    lastPhotoLabel = progress.lastPhotoLabel,
-                    finalOutcome = progress.finalOutcome,
-                    finalOutcomeNote = progress.finalOutcomeNote
-                )
-            )
+            JobExecutionAssist.completionSummary(it, state?.asJobProgress() ?: com.example.arcomtechapp.workflow.JobProgress())
         }
         binding.textDraftStatus.text = if (draft.isNullOrBlank()) {
             "No draft saved${closeout?.let { ". ${it.headline}" } ?: ""}"
         } else {
             buildString {
                 append("Draft saved (${draft.length} chars)")
-                if (progress.notePendingSync) {
+                if (state?.notePendingSync == true) {
                     append("\nPending sync to Ops Hub")
-                } else if (!progress.noteLastSyncMessage.isNullOrBlank()) {
-                    append("\nLast sync: ${progress.noteLastSyncMessage}")
+                } else if (!state?.noteLastSyncMessage.isNullOrBlank()) {
+                    append("\nLast sync: ${state?.noteLastSyncMessage}")
                 }
                 closeout?.let {
                     append("\n${it.headline}")
@@ -183,10 +150,9 @@ class NotesFragment : Fragment() {
         }
     }
 
-    private fun buildNoteGuidance(): String {
+    private fun buildNoteGuidance(state: com.example.arcomtechapp.data.models.JobWorkflowState? = null): String {
         val currentJob = job ?: return "Use the note blocks to capture the field story cleanly."
-        val progress = storage.getLocalJobProgress(currentJob.id)
-        return JobExecutionAssist.noteGuidance(currentJob, progress.finalOutcome)
+        return JobExecutionAssist.noteGuidance(currentJob, state?.finalOutcome)
     }
 
     private fun applyTemplateLabels() {
@@ -221,7 +187,7 @@ class NotesFragment : Fragment() {
         binding.inputNote.setText(updated)
         binding.inputNote.setSelection(updated.length)
         binding.textNoteGuidance.text = buildNoteGuidance()
-        updateDraftStatus()
+        updateDraftStatus(workflowViewModel.workflowState.value)
     }
 
     companion object {
@@ -243,6 +209,6 @@ class NotesFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
-        storage.setJobNotesDraft(job?.id, binding.inputNote.text?.toString())
+        job?.let { workflowViewModel.onNoteDraftChanged(it, binding.inputNote.text?.toString()) }
     }
 }

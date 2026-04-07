@@ -10,24 +10,25 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
+import androidx.fragment.app.viewModels
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.data.models.JobPhotoStatus
 import com.example.arcomtechapp.data.repo.PhotoUploadRequest
-import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentPhotosBinding
+import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
 import java.io.ByteArrayOutputStream
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.example.arcomtechapp.viewmodel.JobWorkflowViewModel
 
 class PhotosFragment : Fragment() {
 
     private var _binding: FragmentPhotosBinding? = null
     private val binding get() = _binding!!
+    private val workflowViewModel: JobWorkflowViewModel by viewModels {
+        JobWorkflowViewModel.Factory(requireContext().fieldDeskContainer())
+    }
     private lateinit var storage: Storage
     private var job: Job? = null
     private var selectedPromptIndex: Int = 0
@@ -73,12 +74,12 @@ class PhotosFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.switchInlineCompress.isChecked = storage.shouldAutoCompressPhotos()
+        binding.switchInlineCompress.isChecked = workflowViewModel.isAutoCompressEnabled()
         binding.switchInlineCompress.setOnCheckedChangeListener { _, isChecked ->
-            storage.setAutoCompressPhotos(isChecked)
-            updateStatus(if (isChecked) "Auto-compress enabled" else "Auto-compress disabled")
+            workflowViewModel.setAutoCompressPhotos(isChecked)
         }
         bindPromptButtons()
+        observeWorkflowState()
 
         binding.buttonCamera.setOnClickListener { cameraLauncher.launch(null) }
         binding.buttonGallery.setOnClickListener { galleryLauncher.launch("image/*") }
@@ -88,18 +89,7 @@ class PhotosFragment : Fragment() {
                 updateStatus("Open photos from a job to check compliance")
                 return@setOnClickListener
             }
-            lifecycleScope.launch(Dispatchers.IO) {
-                val result = RepositoryProvider.fromContext(requireContext()).evaluatePhotoCompliance(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    currentJob.id,
-                    sendNotice = false
-                )
-                withContext(Dispatchers.Main) {
-                    updateStatus(result.message.ifBlank { "Photo compliance checked" })
-                    refreshPhotoStatus()
-                }
-            }
+            workflowViewModel.evaluatePhotoCompliance(currentJob)
         }
         binding.buttonEmailUpload.setOnClickListener {
             val currentJob = job
@@ -113,26 +103,7 @@ class PhotosFragment : Fragment() {
                 return@setOnClickListener
             }
             binding.buttonEmailUpload.isEnabled = false
-            lifecycleScope.launch(Dispatchers.IO) {
-                val result = RepositoryProvider.fromContext(requireContext()).uploadJobPhoto(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    currentJob.id,
-                    upload
-                )
-                withContext(Dispatchers.Main) {
-                    storage.saveLastJobAction(currentJob.id, result.message)
-                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
-                    if (result.success) {
-                        pendingUpload = null
-                        updateStatus("Photo attached to SR. Capture the next required shot when ready.")
-                    } else {
-                        updateStatus("Photo was not attached. Keep this screen open and retry before leaving the stop.")
-                    }
-                    renderProgress()
-                    refreshPhotoStatus()
-                }
-            }
+            workflowViewModel.uploadPhoto(currentJob, upload)
         }
 
         binding.textPhotoConfig.text = buildConfigText()
@@ -140,14 +111,34 @@ class PhotosFragment : Fragment() {
         updatePhotoPromptState()
         renderProgress()
         updateStatus("Ready for guided photo capture")
-        refreshPhotoStatus()
+        job?.let { workflowViewModel.load(it) }
+    }
+
+    private fun observeWorkflowState() {
+        workflowViewModel.workflowState.observe(viewLifecycleOwner) {
+            renderProgress()
+            updatePhotoPromptState()
+        }
+        workflowViewModel.photoStatus.observe(viewLifecycleOwner) { status ->
+            livePhotoStatus = status
+            renderProgress()
+        }
+        workflowViewModel.actionMessage.observe(viewLifecycleOwner) { message ->
+            if (!message.isNullOrBlank()) {
+                binding.buttonEmailUpload.isEnabled = true
+                if (message.startsWith("Photo attached")) {
+                    pendingUpload = null
+                }
+                updateStatus(message)
+            }
+        }
     }
 
     private fun buildConfigText(): String {
         val parts = mutableListOf<String>()
         parts += storage.getActiveBaseUrl()?.ifBlank { "No backend URL" } ?: "No backend URL"
         parts += if (storage.getActiveApiKey().isNullOrBlank()) "API key missing" else "API key set"
-        parts += if (storage.shouldAutoCompressPhotos()) "Auto-compress ON" else "Auto-compress OFF"
+        parts += if (workflowViewModel.isAutoCompressEnabled()) "Auto-compress ON" else "Auto-compress OFF"
         return parts.joinToString(" • ")
     }
 
@@ -177,7 +168,7 @@ class PhotosFragment : Fragment() {
         binding.buttonPhotoTypeTwo.text = prompts.getOrNull(1)?.label ?: "Support"
         binding.buttonPhotoTypeThree.text = prompts.getOrNull(2)?.label ?: "Issue"
         binding.textPhotoPrompt.text = prompts.getOrNull(selectedPromptIndex)?.helper ?: "Capture supporting field photos."
-        val progress = storage.getLocalJobProgress(job?.id)
+        val progress = job?.id?.let { requireContext().fieldDeskContainer().localWorkflowStateRepository().getJobWorkflowState(it) }
         binding.textPhotoChecklist.text = JobExecutionAssist.photoChecklist(
             job ?: Job(
                 id = "local",
@@ -189,8 +180,8 @@ class PhotosFragment : Fragment() {
                 distanceMiles = null,
                 equipment = null
             ),
-            progress.photoCount,
-            progress.lastPhotoLabel
+            progress?.photoCount ?: 0,
+            progress?.lastPhotoLabel
         ).joinToString("\n") { "• $it" }
     }
 
@@ -211,19 +202,14 @@ class PhotosFragment : Fragment() {
         currentPrompts().getOrNull(selectedPromptIndex)?.label ?: "Job photo"
 
     private fun onPhotoCaptured(status: String) {
-        job?.id?.let { jobId ->
-            storage.recordJobPhotoCapture(jobId, selectedPhotoLabel())
-            storage.saveLastJobAction(jobId, "Captured ${selectedPhotoLabel().lowercase()}")
-        }
-        renderProgress()
-        updateStatus(status)
+        job?.let { workflowViewModel.recordPhotoCaptured(it, selectedPhotoLabel(), status) }
     }
 
     private fun renderProgress() {
-        val progress = storage.getLocalJobProgress(job?.id)
+        val progress = job?.id?.let { requireContext().fieldDeskContainer().localWorkflowStateRepository().getJobWorkflowState(it) }
         binding.textPhotoProgress.text = buildString {
-            append("Photos captured: ${progress.photoCount}")
-            progress.lastPhotoLabel?.takeIf { it.isNotBlank() }?.let {
+            append("Photos captured: ${progress?.photoCount ?: 0}")
+            progress?.lastPhotoLabel?.takeIf { it.isNotBlank() }?.let {
                 append("\nLast capture: $it")
             }
             pendingUpload?.let {
@@ -237,21 +223,6 @@ class PhotosFragment : Fragment() {
     private fun updateStatus(status: String) {
         binding.textPhotoStatus.isVisible = true
         binding.textPhotoStatus.text = status
-    }
-
-    private fun refreshPhotoStatus() {
-        val currentJob = job ?: return
-        lifecycleScope.launch(Dispatchers.IO) {
-            val status = RepositoryProvider.fromContext(requireContext()).getJobPhotoStatus(
-                storage.getActiveBaseUrl(),
-                storage.getActiveApiKey(),
-                currentJob.id
-            )
-            withContext(Dispatchers.Main) {
-                livePhotoStatus = status
-                renderProgress()
-            }
-        }
     }
 
     private fun buildPhotoComplianceText(): String {

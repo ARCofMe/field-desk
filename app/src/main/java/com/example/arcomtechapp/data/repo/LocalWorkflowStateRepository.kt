@@ -30,4 +30,30 @@ class LocalWorkflowStateRepository(
     fun setFinalOutcome(jobId: String?, outcome: String?, note: String? = null) {
         storage.setJobFinalOutcome(jobId, outcome, note)
     }
+
+    fun setNoteDraft(jobId: String?, draft: String?) {
+        storage.setJobNotesDraft(jobId, draft)
+    }
+
+    fun clearNoteDraft(jobId: String?) {
+        storage.clearJobNotesDraft(jobId)
+    }
+
+    fun setNoteSyncState(jobId: String?, pending: Boolean, message: String? = null) {
+        storage.setJobNoteSyncState(jobId, pending, message)
+    }
+
+    fun clearNoteSyncState(jobId: String?) {
+        storage.clearJobNoteSyncState(jobId)
+    }
+
+    fun recordPhotoCapture(jobId: String?, label: String) {
+        storage.recordJobPhotoCapture(jobId, label)
+    }
+
+    fun shouldAutoCompressPhotos(): Boolean = storage.shouldAutoCompressPhotos()
+
+    fun setAutoCompressPhotos(enabled: Boolean) {
+        storage.setAutoCompressPhotos(enabled)
+    }
 }
