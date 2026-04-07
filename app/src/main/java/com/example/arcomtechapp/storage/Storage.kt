@@ -3,6 +3,7 @@ package com.example.arcomtechapp.storage
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatDelegate
+import com.example.arcomtechapp.data.models.FieldDeskSession
 
 class Storage(context: Context) {
 
@@ -326,6 +327,19 @@ class Storage(context: Context) {
         lastJobAction = getLastJobAction(),
         lastJobActionJobId = getLastJobActionJobId()
     )
+
+    fun getFieldDeskSession(): FieldDeskSession {
+        val status = getConfigStatus()
+        return FieldDeskSession(
+            backendMode = getBackendMode(),
+            technicianId = getTechnicianId(),
+            technicianName = getTechnicianName(),
+            baseUrl = getActiveBaseUrl(),
+            apiKey = getActiveApiKey(),
+            configComplete = status.complete,
+            missingConfig = status.missingItems
+        )
+    }
 
     fun clearAll() {
         prefs.edit().clear().apply()

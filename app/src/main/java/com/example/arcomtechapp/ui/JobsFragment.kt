@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentJobsBinding
+import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.viewmodel.JobsViewModel
 import com.example.arcomtechapp.workflow.JobWorkflow
@@ -131,9 +132,7 @@ class JobsFragment : Fragment() {
     private fun loadJobs() {
         binding.textJobsState.visibility = View.GONE
         viewModel.loadJobs(
-            technicianId = storage.getTechnicianId(),
-            baseUrl = storage.getActiveBaseUrl(),
-            apiKey = storage.getActiveApiKey(),
+            session = requireContext().fieldDeskContainer().currentSession(),
             startDate = startDate.format(bfFormatter) + " 12:00 AM",
             endDate = endDate.format(bfFormatter) + " 11:59 PM",
             dateRangeType = dateRangeType

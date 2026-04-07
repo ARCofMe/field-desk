@@ -14,6 +14,7 @@ import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.data.repo.RepositoryProvider
 import androidx.lifecycle.lifecycleScope
+import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.ui.settings.SettingsActivity
 import com.example.arcomtechapp.viewmodel.TechnicianDashboardViewModel
@@ -61,7 +62,7 @@ class TodayFragment : Fragment() {
             startActivity(android.content.Intent(requireContext(), SettingsActivity::class.java))
         }
         observeViewModel()
-        viewModel.loadDashboard(storage.getTechnicianId(), storage.getActiveBaseUrl(), storage.getActiveApiKey())
+        viewModel.loadDashboard(requireContext().fieldDeskContainer().currentSession())
     }
 
     private fun observeViewModel() {
@@ -167,7 +168,7 @@ class TodayFragment : Fragment() {
                 storage.saveLastJobAction(job.id, result.message)
                 Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
                 if (result.success) {
-                    viewModel.loadDashboard(storage.getTechnicianId(), storage.getActiveBaseUrl(), storage.getActiveApiKey())
+                    viewModel.loadDashboard(requireContext().fieldDeskContainer().currentSession())
                 }
             }
         }

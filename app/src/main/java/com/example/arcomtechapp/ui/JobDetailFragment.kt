@@ -19,12 +19,16 @@ import com.example.arcomtechapp.data.models.JobTimelineEntry
 import com.example.arcomtechapp.data.repo.TechnicianActionResult
 import com.example.arcomtechapp.data.repo.RepositoryProvider
 import com.example.arcomtechapp.databinding.FragmentJobDetailBinding
+import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.util.serializableCompat
 import com.example.arcomtechapp.workflow.JobExecutionAssist
 import com.example.arcomtechapp.workflow.JobProgress
 import com.example.arcomtechapp.workflow.JobWorkflow
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import com.example.arcomtechapp.viewmodel.JobDetailContext
+import com.example.arcomtechapp.viewmodel.JobDetailViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -33,6 +37,9 @@ class JobDetailFragment : Fragment() {
 
     private var _binding: FragmentJobDetailBinding? = null
     private val binding get() = _binding!!
+    private val detailViewModel: JobDetailViewModel by viewModels {
+        JobDetailViewModel.Factory(requireContext().fieldDeskContainer())
+    }
     private var job: Job? = null
     private lateinit var storage: Storage
     private var launchCallOnOpen: Boolean = false
@@ -60,14 +67,34 @@ class JobDetailFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        observeViewModel()
         job?.let { renderJob(it) }
-        refreshJobContext()
+        job?.let { detailViewModel.loadJobContext(it) }
     }
 
     override fun onResume() {
         super.onResume()
         job?.let { renderJob(it) }
-        refreshJobContext()
+        job?.let { detailViewModel.loadJobContext(it) }
+    }
+
+    private fun observeViewModel() {
+        detailViewModel.context.observe(viewLifecycleOwner) { context ->
+            applyJobContext(context)
+        }
+        detailViewModel.error.observe(viewLifecycleOwner) { error ->
+            if (!error.isNullOrBlank()) {
+                showActionFeedback(error)
+            }
+        }
+    }
+
+    private fun applyJobContext(context: JobDetailContext) {
+        job = context.job
+        partsCase = context.partsCase
+        photoStatus = context.photoStatus
+        timeline = context.timeline
+        renderJob(context.job)
     }
 
     private fun renderJob(job: Job) {
@@ -158,48 +185,6 @@ class JobDetailFragment : Fragment() {
         } else if (launchNavigationOnOpen) {
             launchNavigationOnOpen = false
             openNavigation(job)
-        }
-    }
-
-    private fun refreshJobContext() {
-        val currentJob = job ?: return
-        lifecycleScope.launch(Dispatchers.IO) {
-            val repo = RepositoryProvider.fromContext(requireContext())
-            val refreshedJob = runCatching {
-                repo.getJob(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    currentJob.id
-                ) ?: currentJob
-            }.getOrDefault(currentJob)
-            val refreshedPartsCase = runCatching {
-                repo.getJobPartsCase(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    currentJob.id
-                )
-            }.getOrNull()
-            val refreshedPhotoStatus = runCatching {
-                repo.getJobPhotoStatus(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    currentJob.id
-                )
-            }.getOrNull()
-            val refreshedTimeline = runCatching {
-                repo.getJobTimeline(
-                    storage.getActiveBaseUrl(),
-                    storage.getActiveApiKey(),
-                    currentJob.id
-                )
-            }.getOrDefault(emptyList())
-            withContext(Dispatchers.Main) {
-                job = refreshedJob
-                partsCase = refreshedPartsCase
-                photoStatus = refreshedPhotoStatus
-                timeline = refreshedTimeline
-                renderJob(refreshedJob)
-            }
         }
     }
 
@@ -504,7 +489,7 @@ class JobDetailFragment : Fragment() {
         showActionFeedback(message, isError = !result.success)
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
         if (result.success && refreshOnSuccess) {
-            refreshJobContext()
+            detailViewModel.loadJobContext(job)
         }
     }
 

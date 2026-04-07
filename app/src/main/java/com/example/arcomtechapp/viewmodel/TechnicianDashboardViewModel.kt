@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.arcomtechapp.data.models.FieldDeskSession
 import com.example.arcomtechapp.data.repo.BlueFolderFieldOpsRepository
 import com.example.arcomtechapp.data.repo.FieldOpsRepository
 import com.example.arcomtechapp.data.models.Job
@@ -35,14 +36,14 @@ class TechnicianDashboardViewModel(
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
-    fun loadDashboard(technicianId: String?, baseUrl: String? = null, apiKey: String? = null) {
+    fun loadDashboard(session: FieldDeskSession) {
         _loading.value = true
         _error.value = null
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                _connectionStatus.postValue(repo.checkConnection(baseUrl, apiKey))
+                _connectionStatus.postValue(repo.checkConnection(session.baseUrl, session.apiKey))
 
-                val jobs = repo.getTodayJobs(baseUrl, apiKey, technicianId)
+                val jobs = repo.getTodayJobs(session.baseUrl, session.apiKey, session.technicianId)
                 val completed = jobs.count { it.status.equals("completed", ignoreCase = true) }
                 val pending = jobs.size - completed
 

@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.arcomtechapp.data.models.FieldDeskSession
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.data.repo.BlueFolderFieldOpsRepository
 import com.example.arcomtechapp.data.repo.FieldOpsRepository
@@ -26,19 +27,17 @@ class JobsViewModel(
     val error: LiveData<String?> = _error
 
     fun loadJobs(
-        technicianId: String?,
-        baseUrl: String? = null,
-        apiKey: String? = null,
+        session: FieldDeskSession,
         startDate: String? = null,
         endDate: String? = null,
         dateRangeType: String = "scheduled"
     ) {
         _loading.value = true
         _error.value = null
-        Log.d("JobsViewModel", "Loading jobs tech=$technicianId start=$startDate end=$endDate type=$dateRangeType")
+        Log.d("JobsViewModel", "Loading jobs tech=${session.technicianId} start=$startDate end=$endDate type=$dateRangeType")
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val jobs = repo.getAllJobs(baseUrl, apiKey, technicianId, startDate, endDate, dateRangeType)
+                val jobs = repo.getAllJobs(session.baseUrl, session.apiKey, session.technicianId, startDate, endDate, dateRangeType)
                 Log.d("JobsViewModel", "Loaded ${jobs.size} jobs")
                 _jobs.postValue(jobs)
                 _error.postValue(null)

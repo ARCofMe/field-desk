@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.databinding.FragmentDashboardBinding
+import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.viewmodel.TechnicianDashboardViewModel
 
@@ -18,7 +19,9 @@ class DashboardFragment : Fragment() {
 
     private var _binding: FragmentDashboardBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: TechnicianDashboardViewModel by viewModels()
+    private val viewModel: TechnicianDashboardViewModel by viewModels {
+        TechnicianDashboardViewModel.Factory(requireContext().fieldDeskContainer().repository())
+    }
     private lateinit var storage: Storage
     private lateinit var adapter: JobAdapter
 
@@ -44,7 +47,7 @@ class DashboardFragment : Fragment() {
         binding.buttonOpenNotes.setOnClickListener { openFragment(NotesFragment()) }
         binding.buttonSyncNow.setOnClickListener {
             storage.markSyncNow()
-            viewModel.loadDashboard(storage.getTechnicianId(), storage.getActiveBaseUrl(), storage.getActiveApiKey())
+            viewModel.loadDashboard(requireContext().fieldDeskContainer().currentSession())
             Toast.makeText(requireContext(), "Sync marked", Toast.LENGTH_SHORT).show()
             updateConnectionBanner()
         }
@@ -52,7 +55,7 @@ class DashboardFragment : Fragment() {
 
         observeViewModel()
         updateConnectionBanner()
-        viewModel.loadDashboard(storage.getTechnicianId(), storage.getActiveBaseUrl(), storage.getActiveApiKey())
+        viewModel.loadDashboard(requireContext().fieldDeskContainer().currentSession())
     }
 
     private fun observeViewModel() {

@@ -1,9 +1,11 @@
 package com.example.arcomtechapp.viewmodel
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import com.example.arcomtechapp.data.models.FieldDeskSession
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.data.repo.FieldOpsRepository
 import com.example.arcomtechapp.data.repo.TechnicianActionResult
+import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.util.getOrAwaitValue
 import io.mockk.every
 import io.mockk.mockk
@@ -19,6 +21,15 @@ class JobsViewModelTest {
 
     @get:Rule
     val instantTaskRule = InstantTaskExecutorRule()
+
+    private fun session(technicianId: String = "t1"): FieldDeskSession = FieldDeskSession(
+        backendMode = Storage.BackendMode.BLUEFOLDER_DIRECT,
+        technicianId = technicianId,
+        technicianName = "Tech",
+        baseUrl = null,
+        apiKey = null,
+        configComplete = true
+    )
 
     @Test
     fun `loadJobs posts data and clears error`() {
@@ -44,7 +55,7 @@ class JobsViewModelTest {
         every { repo.preparePhotoUpload(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
 
         val viewModel = JobsViewModel(repo)
-        viewModel.loadJobs("t1")
+        viewModel.loadJobs(session("t1"))
 
         val emitted = viewModel.jobs.getOrAwaitValue(time = 5)
         assertEquals(1, emitted.size)
@@ -65,7 +76,7 @@ class JobsViewModelTest {
         every { repo.preparePhotoUpload(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
 
         val viewModel = JobsViewModel(repo)
-        viewModel.loadJobs("t1")
+        viewModel.loadJobs(session("t1"))
 
         assertEquals("boom", viewModel.error.getOrAwaitValue(ignoreNulls = true))
         // Jobs are never posted; ensure LiveData remains unset/null-safe.

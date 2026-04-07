@@ -1,9 +1,11 @@
 package com.example.arcomtechapp.viewmodel
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import com.example.arcomtechapp.data.models.FieldDeskSession
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.data.repo.FieldOpsRepository
 import com.example.arcomtechapp.data.repo.TechnicianActionResult
+import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.util.getOrAwaitValue
 import io.mockk.every
 import io.mockk.mockk
@@ -18,6 +20,15 @@ class TechnicianDashboardViewModelTest {
 
     @get:Rule
     val instantTaskRule = InstantTaskExecutorRule()
+
+    private fun session(technicianId: String = "t1"): FieldDeskSession = FieldDeskSession(
+        backendMode = Storage.BackendMode.BLUEFOLDER_DIRECT,
+        technicianId = technicianId,
+        technicianName = "Tech",
+        baseUrl = null,
+        apiKey = null,
+        configComplete = true
+    )
 
     @Test
     fun `loadDashboard posts jobs and summary`() {
@@ -38,7 +49,7 @@ class TechnicianDashboardViewModelTest {
         every { repo.preparePhotoUpload(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
 
         val viewModel = TechnicianDashboardViewModel(repo)
-        viewModel.loadDashboard("t1")
+        viewModel.loadDashboard(session("t1"))
 
         val emitted = viewModel.todayJobs.getOrAwaitValue(time = 5)
         assertEquals(3, emitted.size)
@@ -61,7 +72,7 @@ class TechnicianDashboardViewModelTest {
         every { repo.preparePhotoUpload(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
 
         val viewModel = TechnicianDashboardViewModel(repo)
-        viewModel.loadDashboard("t1")
+        viewModel.loadDashboard(session("t1"))
 
         assertEquals("dash fail", viewModel.error.getOrAwaitValue(ignoreNulls = true))
     }
