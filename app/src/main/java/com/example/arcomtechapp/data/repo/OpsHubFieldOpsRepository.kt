@@ -332,15 +332,25 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
                 setRequestProperty("Content-Type", "application/json")
             }
         }
-        body?.let {
-            OutputStreamWriter(connection.outputStream).use { writer -> writer.write(it) }
+        try {
+            body?.let {
+                OutputStreamWriter(connection.outputStream).use { writer -> writer.write(it) }
+            }
+            val stream = if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream
+            val response = stream?.bufferedReader()?.use(BufferedReader::readText).orEmpty()
+            if (connection.responseCode !in 200..299) {
+                throw IllegalStateException(parseErrorMessage(connection.responseCode, response))
+            }
+            return response
+        } finally {
+            connection.disconnect()
         }
-        val stream = if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream
-        val response = stream?.bufferedReader()?.use(BufferedReader::readText).orEmpty()
-        if (connection.responseCode !in 200..299) {
-            throw IllegalStateException("HTTP ${connection.responseCode}: ${response.take(200)}")
-        }
-        return response
+    }
+
+    private fun parseErrorMessage(statusCode: Int, response: String): String {
+        val jsonMessage = runCatching { JSONObject(response).optString("message") }.getOrNull()?.takeIf { it.isNotBlank() }
+        val bodyMessage = jsonMessage ?: response.take(200).trim().ifBlank { "Unexpected server response." }
+        return "HTTP $statusCode: $bodyMessage"
     }
 
     private fun normalizeBaseUrl(baseUrl: String?): String? {
