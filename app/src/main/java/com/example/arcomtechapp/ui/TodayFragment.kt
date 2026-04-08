@@ -45,22 +45,13 @@ class TodayFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.buttonOpenAllJobs.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.content_frame, JobsFragment())
-                .addToBackStack(null)
-                .commit()
+            fieldDeskNavigator().openJobs()
         }
         binding.buttonTodayPhotos.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.content_frame, PhotosFragment())
-                .addToBackStack(null)
-                .commit()
+            fieldDeskNavigator().openPhotos()
         }
         binding.buttonTodayNotes.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.content_frame, NotesFragment())
-                .addToBackStack(null)
-                .commit()
+            fieldDeskNavigator().openNotes()
         }
         binding.buttonTodaySettings.setOnClickListener {
             startActivity(android.content.Intent(requireContext(), SettingsActivity::class.java))
@@ -152,18 +143,12 @@ class TodayFragment : Fragment() {
             "notes" -> {
                 storage.saveLastJobAction(job.id, "Opened guided note")
                 selectedJobViewModel.select(job)
-                parentFragmentManager.beginTransaction()
-                    .replace(R.id.content_frame, NotesFragment())
-                    .addToBackStack(null)
-                    .commit()
+                fieldDeskNavigator().openNotes()
             }
             "photos" -> {
                 storage.saveLastJobAction(job.id, "Opened photo workflow")
                 selectedJobViewModel.select(job)
-                parentFragmentManager.beginTransaction()
-                    .replace(R.id.content_frame, PhotosFragment())
-                    .addToBackStack(null)
-                    .commit()
+                fieldDeskNavigator().openPhotos()
             }
             "parts", "quote_needed", "reschedule", "complete" -> openJob(job)
             "arrive", "enroute" -> performQuickStatusAction(job, actionKey)
@@ -191,10 +176,7 @@ class TodayFragment : Fragment() {
 
     private fun openJob(job: Job, launchCall: Boolean = false, launchNavigation: Boolean = false) {
         selectedJobViewModel.select(job, launchCallOnOpen = launchCall, launchNavigationOnOpen = launchNavigation)
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.content_frame, JobDetailFragment())
-            .addToBackStack(null)
-            .commit()
+        fieldDeskNavigator().openJobDetail()
     }
 
     override fun onDestroyView() {

@@ -15,7 +15,19 @@ import com.example.arcomtechapp.ui.theme.AppThemeResolver
 import com.google.android.material.navigation.NavigationView
 
 class MainActivity : AppCompatActivity(),
-    NavigationView.OnNavigationItemSelectedListener {
+    NavigationView.OnNavigationItemSelectedListener,
+    FieldDeskNavigator {
+
+    private enum class Destination(
+        val menuId: Int?,
+        val addToBackStack: Boolean
+    ) {
+        TODAY(R.id.nav_dashboard, false),
+        JOBS(R.id.nav_jobs, false),
+        PHOTOS(R.id.nav_photos, false),
+        NOTES(R.id.nav_notes, false),
+        JOB_DETAIL(null, true),
+    }
 
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var navView: NavigationView
@@ -60,8 +72,7 @@ class MainActivity : AppCompatActivity(),
         })
 
         if (savedInstanceState == null) {
-            showFragment(TodayFragment())
-            navView.setCheckedItem(R.id.nav_dashboard)
+            navigateTo(Destination.TODAY)
         }
     }
 
@@ -81,27 +92,53 @@ class MainActivity : AppCompatActivity(),
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.nav_dashboard ->
-                showFragment(TodayFragment())
-            R.id.nav_jobs ->
-                showFragment(JobsFragment())
-            R.id.nav_photos ->
-                showFragment(PhotosFragment())
-            R.id.nav_notes ->
-                showFragment(NotesFragment())
-            R.id.nav_settings -> {
-                startActivity(Intent(this, SettingsActivity::class.java))
-            }
+            R.id.nav_dashboard -> openToday()
+            R.id.nav_jobs -> openJobs()
+            R.id.nav_photos -> openPhotos()
+            R.id.nav_notes -> openNotes()
+            R.id.nav_settings -> openSettings()
         }
 
         drawerLayout.closeDrawers()
         return true
     }
 
-    private fun showFragment(fragment: androidx.fragment.app.Fragment) {
+    override fun openToday() = navigateTo(Destination.TODAY)
+
+    override fun openJobs() = navigateTo(Destination.JOBS)
+
+    override fun openPhotos() = navigateTo(Destination.PHOTOS)
+
+    override fun openNotes() = navigateTo(Destination.NOTES)
+
+    override fun openJobDetail() = navigateTo(Destination.JOB_DETAIL)
+
+    override fun openSettings() {
+        startActivity(Intent(this, SettingsActivity::class.java))
+    }
+
+    private fun navigateTo(destination: Destination) {
+        if (!destination.addToBackStack) {
+            supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
+        }
         supportFragmentManager.beginTransaction()
-            .replace(R.id.content_frame, fragment)
+            .replace(R.id.content_frame, destination.fragment())
+            .apply {
+                if (destination.addToBackStack) {
+                    addToBackStack(destination.name)
+                }
+            }
             .commit()
+        destination.menuId?.let(navView::setCheckedItem)
+        drawerLayout.closeDrawers()
+    }
+
+    private fun Destination.fragment(): androidx.fragment.app.Fragment = when (this) {
+        Destination.TODAY -> TodayFragment()
+        Destination.JOBS -> JobsFragment()
+        Destination.PHOTOS -> PhotosFragment()
+        Destination.NOTES -> NotesFragment()
+        Destination.JOB_DETAIL -> JobDetailFragment()
     }
 
     private fun updateNavHeader() {

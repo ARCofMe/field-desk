@@ -42,13 +42,13 @@ class DashboardFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         adapter = JobAdapter { job ->
             selectedJobViewModel.select(job)
-            openFragment(JobDetailFragment())
+            fieldDeskNavigator().openJobDetail()
         }
         binding.recyclerTodayJobs.adapter = adapter
 
-        binding.buttonOpenJobs.setOnClickListener { openFragment(JobsFragment()) }
-        binding.buttonOpenPhotos.setOnClickListener { openFragment(PhotosFragment()) }
-        binding.buttonOpenNotes.setOnClickListener { openFragment(NotesFragment()) }
+        binding.buttonOpenJobs.setOnClickListener { fieldDeskNavigator().openJobs() }
+        binding.buttonOpenPhotos.setOnClickListener { fieldDeskNavigator().openPhotos() }
+        binding.buttonOpenNotes.setOnClickListener { fieldDeskNavigator().openNotes() }
         binding.buttonSyncNow.setOnClickListener {
             storage.markSyncNow()
             viewModel.loadDashboard(requireContext().fieldDeskContainer().currentSession())
@@ -140,14 +140,6 @@ class DashboardFragment : Fragment() {
             append("&travelmode=driving")
         }
     }
-
-    private fun openFragment(fragment: Fragment) {
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.content_frame, fragment)
-            .addToBackStack(null)
-            .commit()
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

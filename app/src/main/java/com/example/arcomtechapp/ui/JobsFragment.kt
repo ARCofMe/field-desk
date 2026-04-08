@@ -72,10 +72,7 @@ class JobsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         adapter = JobAdapter { job ->
             selectedJobViewModel.select(job)
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.content_frame, JobDetailFragment())
-                .addToBackStack(null)
-                .commit()
+            fieldDeskNavigator().openJobDetail()
         }
         binding.recyclerJobs.adapter = adapter
         binding.recyclerJobs.layoutManager = LinearLayoutManager(requireContext())

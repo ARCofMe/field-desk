@@ -18,9 +18,9 @@ import com.example.arcomtechapp.data.models.JobPartsCase
 import com.example.arcomtechapp.data.models.JobPhotoStatus
 import com.example.arcomtechapp.data.models.JobTimelineEntry
 import com.example.arcomtechapp.data.repo.TechnicianActionResult
-import com.example.arcomtechapp.databinding.FragmentJobDetailBinding
 import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
+import com.example.arcomtechapp.databinding.FragmentJobDetailBinding
 import com.example.arcomtechapp.workflow.JobExecutionAssist
 import com.example.arcomtechapp.workflow.JobWorkflow
 import androidx.fragment.app.viewModels
@@ -219,19 +219,13 @@ class JobDetailFragment : Fragment() {
     private fun openNotes(job: Job) {
         requireContext().fieldDeskContainer().localWorkflowStateRepository().saveLastAction(job.id, "Opened guided note")
         selectedJobViewModel.select(job)
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.content_frame, NotesFragment())
-            .addToBackStack(null)
-            .commit()
+        fieldDeskNavigator().openNotes()
     }
 
     private fun openPhotos(job: Job) {
         requireContext().fieldDeskContainer().localWorkflowStateRepository().saveLastAction(job.id, "Opened photo capture")
         selectedJobViewModel.select(job)
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.content_frame, PhotosFragment())
-            .addToBackStack(null)
-            .commit()
+        fieldDeskNavigator().openPhotos()
     }
 
     private fun handleWorkflowAction(job: Job, key: String?) {
