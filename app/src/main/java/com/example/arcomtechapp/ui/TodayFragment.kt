@@ -102,7 +102,11 @@ class TodayFragment : Fragment() {
             append("#${active.id}")
             if (active.customerName.isNotBlank()) append(" • ${active.customerName}")
         }
-        binding.textActiveMeta.text = listOf(active.appointmentWindow, summary.statusLabel)
+        binding.textActiveMeta.text = listOf(
+            active.appointmentWindow,
+            summary.statusLabel,
+            active.statusMeta?.categoryLabel
+        ).filterNotNull()
             .filter { it.isNotBlank() }
             .joinToString(" • ")
         binding.textActiveAddress.text = active.address

@@ -7,6 +7,7 @@ Android technician app for ARCoM field workflows.
 - next-job execution first
 - one-tap access to photos, notes, and field exceptions
 - Ops Hub as the preferred backend path, with BlueFolder-direct still available for compatibility
+- BlueFolder-aware SR status semantics when running against Ops Hub, so the app can distinguish closed, quote-blocked, parts-active, waiting-customer, scheduling, and review states without hardcoded tenant string logic
 
 ## Runtime Setup
 

@@ -9,10 +9,26 @@ data class Job(
     val customerName: String,
     val customerPhone: String,
     val status: String,
+    val statusMeta: JobStatusMeta? = null,
     val distanceMiles: Double? = null,
     val equipment: String? = null,
     val partsStage: String? = null,
     val nextAction: String? = null
+) : Serializable
+
+data class JobStatusMeta(
+    val raw: String? = null,
+    val category: String? = null,
+    val categoryLabel: String? = null,
+    val isClosed: Boolean = false,
+    val isOpen: Boolean = false,
+    val isQuoteNeeded: Boolean = false,
+    val quoteSubtype: String? = null,
+    val isActiveParts: Boolean = false,
+    val isWaitingCustomer: Boolean = false,
+    val isScheduling: Boolean = false,
+    val isReview: Boolean = false,
+    val knownInTenantCatalog: Boolean = false
 ) : Serializable
 
 data class JobPartsCase(
@@ -20,6 +36,8 @@ data class JobPartsCase(
     val stage: String,
     val stageLabel: String,
     val status: String,
+    val serviceRequestStatus: String? = null,
+    val serviceRequestStatusMeta: JobStatusMeta? = null,
     val openRequestIds: List<Int> = emptyList(),
     val assignedPartsUserId: Int? = null,
     val blocker: String? = null,

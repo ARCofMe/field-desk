@@ -5,6 +5,7 @@ import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.data.models.JobPartsCase
 import com.example.arcomtechapp.data.models.JobPhotoRecord
 import com.example.arcomtechapp.data.models.JobPhotoStatus
+import com.example.arcomtechapp.data.models.JobStatusMeta
 import com.example.arcomtechapp.data.models.JobTimelineEntry
 import org.json.JSONArray
 import org.json.JSONObject
@@ -98,6 +99,8 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
                 stage = obj.optString("stage"),
                 stageLabel = obj.optString("stageLabel"),
                 status = obj.optString("status"),
+                serviceRequestStatus = obj.optString("serviceRequestStatus").takeIf { it.isNotBlank() },
+                serviceRequestStatusMeta = obj.optJSONObject("serviceRequestStatusMeta")?.let(::parseJobStatusMeta),
                 openRequestIds = buildList {
                     val items = obj.optJSONArray("openRequestIds") ?: JSONArray()
                     for (i in 0 until items.length()) {
@@ -256,10 +259,28 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
             customerName = obj.optString("customerName"),
             customerPhone = obj.optString("customerPhone"),
             status = obj.optString("status"),
+            statusMeta = obj.optJSONObject("statusMeta")?.let(::parseJobStatusMeta),
             distanceMiles = obj.takeIf { !it.isNull("distanceMiles") }?.optDouble("distanceMiles"),
             equipment = obj.takeIf { it.has("equipment") && !it.isNull("equipment") }?.optString("equipment"),
             partsStage = obj.optString("partsStage").takeIf { it.isNotBlank() },
             nextAction = obj.optString("nextAction").takeIf { it.isNotBlank() }
+        )
+    }
+
+    private fun parseJobStatusMeta(obj: JSONObject): JobStatusMeta {
+        return JobStatusMeta(
+            raw = obj.optString("raw").takeIf { it.isNotBlank() },
+            category = obj.optString("category").takeIf { it.isNotBlank() },
+            categoryLabel = obj.optString("categoryLabel").takeIf { it.isNotBlank() },
+            isClosed = obj.optBoolean("isClosed"),
+            isOpen = obj.optBoolean("isOpen"),
+            isQuoteNeeded = obj.optBoolean("isQuoteNeeded"),
+            quoteSubtype = obj.optString("quoteSubtype").takeIf { it.isNotBlank() },
+            isActiveParts = obj.optBoolean("isActiveParts"),
+            isWaitingCustomer = obj.optBoolean("isWaitingCustomer"),
+            isScheduling = obj.optBoolean("isScheduling"),
+            isReview = obj.optBoolean("isReview"),
+            knownInTenantCatalog = obj.optBoolean("knownInTenantCatalog")
         )
     }
 

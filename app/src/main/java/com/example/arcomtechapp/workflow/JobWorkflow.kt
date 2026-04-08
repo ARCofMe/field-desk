@@ -27,14 +27,18 @@ object JobWorkflow {
     fun summarize(job: Job): JobWorkflowSummary {
         val normalizedStatus = job.status.trim().lowercase(Locale.getDefault())
         val normalizedPartsStage = job.partsStage.orEmpty().trim().lowercase(Locale.getDefault())
+        val statusMeta = job.statusMeta
         val hasAddress = job.address.isNotBlank() && !job.address.equals("Address not provided", ignoreCase = true)
         val hasPhone = job.customerPhone.isNotBlank()
         val hasEquipment = !job.equipment.isNullOrBlank()
         val hasNextAction = !job.nextAction.isNullOrBlank()
 
-        val isComplete = normalizedStatus.contains("complete")
-        val needsParts = normalizedStatus.contains("part") || normalizedPartsStage.contains("part")
-        val quoteNeeded = normalizedStatus.contains("quote")
+        val isComplete = statusMeta?.isClosed == true || normalizedStatus.contains("complete")
+        val needsParts = statusMeta?.isActiveParts == true || normalizedStatus.contains("part") || normalizedPartsStage.contains("part")
+        val quoteNeeded = statusMeta?.isQuoteNeeded == true || normalizedStatus.contains("quote")
+        val waitingCustomer = statusMeta?.isWaitingCustomer == true
+        val reviewState = statusMeta?.isReview == true
+        val schedulingState = statusMeta?.isScheduling == true
         val inRoute = normalizedStatus.contains("route") || normalizedStatus.contains("travel")
         val onsite = normalizedStatus.contains("progress") || normalizedStatus.contains("start") || normalizedStatus.contains("onsite")
         val started = normalizedStatus.contains("start")
@@ -45,6 +49,9 @@ object JobWorkflow {
             hasNextAction -> job.nextAction.orEmpty()
             isComplete -> "Review notes and photos before leaving the area."
             quoteNeeded -> "Hand the quote workflow to office cleanly so the next trip is not blind."
+            waitingCustomer -> "This stop is waiting on customer-side follow-up. Leave a clear note and avoid duplicate outreach."
+            reviewState -> "Office review is likely the blocker. Capture clean notes and avoid reworking the same status in the field."
+            schedulingState -> "This stop is already in a scheduling-oriented state. Confirm the handoff is clean before adding more updates."
             isReadyToSchedule -> "Parts are effectively ready. Make sure office has the customer-facing handoff."
             isWaitingParts -> "The parts case is active. Leave a clean trail for office and return scheduling."
             needsParts -> "Capture the part issue cleanly and hand it off without extra typing."
@@ -73,6 +80,12 @@ object JobWorkflow {
                 WorkflowQuickAction("quote_needed", "Send quote handoff"),
                 WorkflowQuickAction("notes", "Guided note"),
                 WorkflowQuickAction("reschedule", "Need reschedule")
+            )
+            waitingCustomer -> listOf(
+                WorkflowQuickAction("call", "Call customer"),
+                WorkflowQuickAction("notes", "Guided note"),
+                WorkflowQuickAction("reschedule", "Need reschedule"),
+                WorkflowQuickAction("photos", "Take photos")
             )
             needsParts -> listOf(
                 WorkflowQuickAction("call", "Call customer"),
@@ -103,6 +116,9 @@ object JobWorkflow {
         val priorityScore = when {
             isComplete -> 90
             quoteNeeded -> 15
+            waitingCustomer -> 17
+            reviewState -> 19
+            schedulingState -> 22
             isReadyToSchedule -> 18
             isWaitingParts -> 25
             needsParts -> 30
@@ -115,6 +131,9 @@ object JobWorkflow {
             headline = when {
                 isComplete -> "Wrapped up"
                 quoteNeeded -> "Quote follow-up"
+                waitingCustomer -> "Customer follow-up"
+                reviewState -> "Office review"
+                schedulingState -> "Scheduling in flight"
                 isReadyToSchedule -> "Ready to schedule"
                 isWaitingParts -> "Waiting on parts"
                 needsParts -> "Parts follow-up"
@@ -124,7 +143,7 @@ object JobWorkflow {
             },
             statusTone = when {
                 isComplete -> "success"
-                quoteNeeded || needsParts || isWaitingParts -> "warn"
+                quoteNeeded || needsParts || isWaitingParts || waitingCustomer || reviewState -> "warn"
                 needsParts -> "warn"
                 onsite -> "accent"
                 else -> "default"

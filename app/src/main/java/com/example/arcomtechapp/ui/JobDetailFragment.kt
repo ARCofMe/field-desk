@@ -120,7 +120,11 @@ class JobDetailFragment : Fragment() {
         val closeout = JobExecutionAssist.completionSummary(job, workflowState.asJobProgress())
         binding.textJobId.text = job.id
         binding.textCustomerName.text = job.customerName
-        binding.textJobStatus.text = "${summary.headline} • ${job.status}"
+        binding.textJobStatus.text = listOf(
+            summary.headline,
+            job.status,
+            job.statusMeta?.categoryLabel
+        ).filterNotNull().filter { it.isNotBlank() }.joinToString(" • ")
         binding.textAppointment.text = job.appointmentWindow
         binding.textAddress.text = job.address
         binding.textPhone.text = job.customerPhone
@@ -437,6 +441,7 @@ class JobDetailFragment : Fragment() {
             return buildString {
                 append("Parts: ")
                 append(job.partsStage ?: "No active parts case")
+                job.statusMeta?.categoryLabel?.takeIf { it.isNotBlank() }?.let { append("\nSR category: $it") }
                 job.nextAction?.takeIf { it.isNotBlank() }?.let {
                     append("\nNext action: $it")
                 }
@@ -444,6 +449,8 @@ class JobDetailFragment : Fragment() {
         }
         return buildString {
             append("Parts: ${case.stageLabel.ifBlank { case.stage.ifBlank { "No active parts case" } }}")
+            case.serviceRequestStatus?.takeIf { it.isNotBlank() }?.let { append("\nSR status: $it") }
+            case.serviceRequestStatusMeta?.categoryLabel?.takeIf { it.isNotBlank() }?.let { append(" • $it") }
             case.blocker?.takeIf { it.isNotBlank() }?.let { append("\nBlocker: $it") }
             case.latestStatusText?.takeIf { it.isNotBlank() }?.let { append("\nLatest: $it") }
             case.nextAction?.takeIf { it.isNotBlank() }?.let { append("\nNext action: $it") }

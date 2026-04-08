@@ -34,9 +34,9 @@ class TechnicianDashboardViewModelTest {
     fun `loadDashboard posts jobs and summary`() {
         val repo = mockk<FieldOpsRepository>()
         val jobs = listOf(
-            Job("1", "A", "8-10", "Cust1", "555", "Completed", 1.0),
-            Job("2", "B", "10-12", "Cust2", "555", "Pending", 2.0),
-            Job("3", "C", "1-3", "Cust3", "555", "pending", 3.0)
+            Job(id = "1", address = "A", appointmentWindow = "8-10", customerName = "Cust1", customerPhone = "555", status = "Completed", distanceMiles = 1.0),
+            Job(id = "2", address = "B", appointmentWindow = "10-12", customerName = "Cust2", customerPhone = "555", status = "Pending", distanceMiles = 2.0),
+            Job(id = "3", address = "C", appointmentWindow = "1-3", customerName = "Cust3", customerPhone = "555", status = "pending", distanceMiles = 3.0)
         )
         every { repo.testPython() } returns ""
         every { repo.getAssignmentsForUser(any()) } returns emptyList()

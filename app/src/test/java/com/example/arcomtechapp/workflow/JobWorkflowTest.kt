@@ -1,6 +1,7 @@
 package com.example.arcomtechapp.workflow
 
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.models.JobStatusMeta
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -57,6 +58,33 @@ class JobWorkflowTest {
         assertEquals("Office needs landlord approval before scheduling return visit.", summary.nextStep)
         assertTrue(summary.quickActions.any { it.key == "quote_needed" })
         assertTrue(summary.checklist.any { it.label == "Ops Hub next step" && it.done })
+    }
+
+    @Test
+    fun summarize_uses_status_meta_for_waiting_customer_flow() {
+        val summary = JobWorkflow.summarize(
+            Job(
+                id = "7",
+                address = "123 Main St",
+                appointmentWindow = "PM",
+                customerName = "Jane",
+                customerPhone = "555-0000",
+                status = "Waiting on CX",
+                statusMeta = JobStatusMeta(
+                    raw = "Waiting on CX",
+                    category = "waiting_customer",
+                    categoryLabel = "Waiting Customer",
+                    isWaitingCustomer = true,
+                    isOpen = true,
+                    knownInTenantCatalog = true
+                ),
+                equipment = "Dryer"
+            )
+        )
+
+        assertEquals("Customer follow-up", summary.headline)
+        assertTrue(summary.quickActions.any { it.key == "call" })
+        assertTrue(summary.nextStep.contains("customer-side follow-up"))
     }
 
     private fun job(id: String, status: String): Job {
