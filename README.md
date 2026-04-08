@@ -1,31 +1,34 @@
 # FieldDesk
 
-Android technician app for ARCoM field workflows.
+FieldDesk is the Android technician app for ARCoM.
 
-## Focus
+It is designed around the technician loop:
 
-- next-job execution first
-- one-tap access to photos, notes, and field exceptions
-- Ops Hub as the preferred backend path, with BlueFolder-direct still available for compatibility
-- BlueFolder-aware SR status semantics when running against Ops Hub, so the app can distinguish closed, quote-blocked, parts-active, waiting-customer, scheduling, and review states without hardcoded tenant string logic
+- today’s work
+- active stop review
+- notes and photos
+- field exceptions and closeout actions
 
 ## Runtime Setup
 
-FieldDesk does not use a repo `.env` file. Runtime config is stored in the in-app Settings screen.
+FieldDesk does not use a repo `.env` file. Runtime configuration lives in the in-app Settings screen.
 
-Required to operate:
+Required:
 
 - backend mode: `Ops Hub` or `BlueFolder`
-- active base URL for the selected backend
-- active API key for the selected backend
+- base URL for the selected backend
+- API key for the selected backend
 - technician ID
-  - when using `Ops Hub`, this can be either a BlueFolder technician user ID or a Discord-linked technician ID
-  - when using `BlueFolder` directly, use the BlueFolder technician user ID
+
+Technician ID rules:
+
+- with `Ops Hub`, use a BlueFolder technician id or a Discord-linked technician id
+- with direct `BlueFolder`, use the BlueFolder technician id
 
 Optional:
 
 - technician name
-- route origin / destination preferences
+- route origin and destination defaults
 - theme mode
 - photo auto-compress
 - debug logging
@@ -33,19 +36,20 @@ Optional:
 ## Build
 
 ```bash
-cd /home/ner0tic/Documents/Projects/ARCoM/ARCoMTechApp
 ./gradlew assembleDebug
 ```
 
 ## Test
 
 ```bash
-cd /home/ner0tic/Documents/Projects/ARCoM/ARCoMTechApp
 ./gradlew testDebugUnitTest
 ```
 
-## Branding
+## Notes
 
-- technician app name: `FieldDesk`
-- dispatch app name: `RouteDesk`
-- parts app name: `PartsDesk`
+- FieldDesk prefers Ops Hub as the backend path.
+- When running through Ops Hub, the app receives normalized BlueFolder status semantics rather than relying only on tenant-specific raw status strings.
+- Product naming is fixed:
+  - `FieldDesk`
+  - `RouteDesk`
+  - `PartsDesk`
