@@ -2,6 +2,7 @@ package com.example.arcomtechapp.ui
 
 import android.app.AlertDialog
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -15,6 +16,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.Fragment
 import android.widget.Toast
 import android.widget.ArrayAdapter
+import android.widget.Button
 import androidx.core.view.isVisible
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
@@ -35,8 +37,10 @@ import com.example.arcomtechapp.viewmodel.JobDetailContext
 import com.example.arcomtechapp.viewmodel.JobDetailViewModel
 import com.example.arcomtechapp.viewmodel.SelectedJobViewModel
 import kotlinx.coroutines.Dispatchers
+import java.io.ByteArrayOutputStream
 import java.text.DateFormat
 import java.util.Date
+import android.util.Base64
 
 class JobDetailFragment : Fragment() {
 
@@ -369,15 +373,34 @@ class JobDetailFragment : Fragment() {
         val approvalBox = CheckBox(requireContext()).apply {
             text = "Customer signoff captured"
         }
+        val signaturePad = SignaturePadView(requireContext()).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                resources.displayMetrics.density.times(180).toInt()
+            ).apply {
+                topMargin = 16
+            }
+        }
+        val clearSignatureButton = Button(requireContext()).apply {
+            text = "Clear signature"
+            setOnClickListener { signaturePad.clearSignature() }
+        }
         form.addView(laborSpinner)
         form.addView(durationInput)
         form.addView(signerInput)
         form.addView(summaryInput)
         form.addView(approvalBox)
+        form.addView(signaturePad)
+        form.addView(clearSignatureButton)
         AlertDialog.Builder(requireContext())
             .setTitle("Completed closeout")
             .setView(form)
             .setPositiveButton("Preview") { _, _ ->
+                val signatureRequired = approvalBox.isChecked
+                if (signatureRequired && !signaturePad.hasSignature()) {
+                    Toast.makeText(requireContext(), "Draw the customer signature before previewing closeout.", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
                 val draft = JobCloseoutDraft(
                     laborCode = laborCodeForSelection(laborSpinner.selectedItemPosition),
                     workPerformed = summaryInput.text?.toString().orEmpty().trim(),
@@ -385,12 +408,17 @@ class JobDetailFragment : Fragment() {
                     endedAtEpochMs = System.currentTimeMillis(),
                     durationMinutes = durationInput.text?.toString()?.toIntOrNull(),
                     signedBy = signerInput.text?.toString().orEmpty().trim().ifBlank { null },
+                    signatureDataBase64 = if (signatureRequired) signaturePad.toBase64Png() else null,
                     customerApproved = approvalBox.isChecked,
                     finalOutcome = "completed",
                     outcomeNote = workflowState.finalOutcomeNote
                 )
                 if (draft.workPerformed.isBlank()) {
                     Toast.makeText(requireContext(), "Work summary is required.", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                if (draft.customerApproved && draft.signedBy.isNullOrBlank()) {
+                    Toast.makeText(requireContext(), "Signer name is required when customer signoff is captured.", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 detailViewModel.previewCloseout(job, draft)
@@ -599,6 +627,13 @@ class JobDetailFragment : Fragment() {
         val startedAt = startedAtEpochMillis ?: return 60
         val minutes = ((System.currentTimeMillis() - startedAt) / 60000L).toInt()
         return minutes.coerceIn(15, 12 * 60)
+    }
+
+    private fun SignaturePadView.toBase64Png(): String {
+        val bitmap = renderBitmap()
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        return Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
     }
 
     override fun onDestroyView() {

@@ -84,6 +84,7 @@ data class JobCloseoutDraft(
     val endedAtEpochMs: Long? = null,
     val durationMinutes: Int? = null,
     val signedBy: String? = null,
+    val signatureDataBase64: String? = null,
     val customerApproved: Boolean = false,
     val finalOutcome: String = "completed",
     val outcomeNote: String? = null

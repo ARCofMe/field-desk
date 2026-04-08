@@ -50,7 +50,7 @@ Optional:
 
 - FieldDesk prefers Ops Hub as the backend path.
 - When running through Ops Hub, the app receives normalized BlueFolder status semantics rather than relying only on tenant-specific raw status strings.
-- Completed closeout now includes a labor/signoff workflow: technician summary, labor type, elapsed time, and customer signoff acknowledgement are submitted to Ops Hub for BlueFolder labor creation.
+- Completed closeout now includes a labor/signoff workflow: technician summary, labor type, elapsed time, typed signer name, and captured signature are submitted to Ops Hub for BlueFolder labor creation.
 - Product naming is fixed:
   - `FieldDesk`
   - `RouteDesk`

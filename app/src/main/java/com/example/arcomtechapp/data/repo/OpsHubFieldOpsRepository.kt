@@ -419,6 +419,7 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
         .put("customerApproved", draft.customerApproved)
         .put("finalOutcome", draft.finalOutcome)
         .put("signedBy", draft.signedBy)
+        .put("signatureDataBase64", draft.signatureDataBase64)
         .put("outcomeNote", draft.outcomeNote)
         .apply {
             draft.startedAtEpochMs?.let { put("startedAtEpochMs", it) }
