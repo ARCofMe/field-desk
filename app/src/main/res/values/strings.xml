@@ -57,6 +57,9 @@
     <string name="fielddesk_workflow_summary_detail">Use this view to run job actions, customer contact, and closeout.</string>
     <string name="fielddesk_workflow_summary_notes">Capture the field story before details get lost.</string>
     <string name="fielddesk_workflow_summary_photos">Capture required proof and compliance photos before closeout.</string>
+    <string name="fielddesk_workflow_readiness_default">Workflow readiness will appear here.</string>
+    <string name="fielddesk_workflow_blockers_default">The host keeps shared blockers and progress in one place.</string>
+    <string name="fielddesk_workflow_progress_default">Local notes, photos, and last action details will appear here.</string>
     <string-array name="job_date_range_types">
         <item>scheduled</item>
         <item>created</item>

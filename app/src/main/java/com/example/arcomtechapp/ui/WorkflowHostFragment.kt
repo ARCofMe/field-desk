@@ -7,11 +7,14 @@ import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.databinding.FragmentWorkflowHostBinding
+import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.viewmodel.SelectedJobState
 import com.example.arcomtechapp.viewmodel.SelectedJobViewModel
+import com.example.arcomtechapp.viewmodel.WorkflowHostViewModel
 import com.example.arcomtechapp.viewmodel.WorkflowPanel
 
 class WorkflowHostFragment : Fragment() {
@@ -19,6 +22,9 @@ class WorkflowHostFragment : Fragment() {
     private var _binding: FragmentWorkflowHostBinding? = null
     private val binding get() = _binding!!
     private val selectedJobViewModel: SelectedJobViewModel by activityViewModels()
+    private val workflowHostViewModel: WorkflowHostViewModel by viewModels {
+        WorkflowHostViewModel.Factory(requireContext().fieldDeskContainer())
+    }
     private var activePanel: WorkflowPanel = WorkflowPanel.DETAIL
 
     override fun onCreateView(
@@ -44,6 +50,19 @@ class WorkflowHostFragment : Fragment() {
         selectedJobViewModel.selectedJob.observe(viewLifecycleOwner) { state ->
             renderState(state)
         }
+        workflowHostViewModel.summary.observe(viewLifecycleOwner) { summary ->
+            binding.textWorkflowHeadline.text = summary.workflowHeadline
+            binding.textWorkflowNextStep.text = summary.nextStep
+            binding.textWorkflowReadiness.text = summary.readinessHeadline
+            binding.textWorkflowBlockers.text = summary.blockersText
+            binding.textWorkflowLocalProgress.text = summary.localProgressText
+        }
+        requireContext().fieldDeskContainer().localWorkflowStateRepository().updatedJobId.observe(viewLifecycleOwner) { jobId ->
+            val currentJob = selectedJobViewModel.currentJob() ?: return@observe
+            if (jobId == currentJob.id) {
+                workflowHostViewModel.load(currentJob)
+            }
+        }
     }
 
     private fun renderState(state: SelectedJobState) {
@@ -60,9 +79,11 @@ class WorkflowHostFragment : Fragment() {
         binding.textWorkflowHostSummary.text = buildSummary(job, panel)
         binding.layoutWorkflowEmptyState.isVisible = job == null
         binding.workflowChildContainer.isVisible = job != null
+        binding.cardWorkflowSummary.isVisible = job != null
         binding.buttonWorkflowOverview.isEnabled = panel != WorkflowPanel.DETAIL
         binding.buttonWorkflowNotes.isEnabled = panel != WorkflowPanel.NOTES
         binding.buttonWorkflowPhotos.isEnabled = panel != WorkflowPanel.PHOTOS
+        workflowHostViewModel.load(job)
         if (job == null) {
             activePanel = panel
             return
