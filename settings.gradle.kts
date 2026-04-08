@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ARCoMTechApp"
+rootProject.name = "field-desk"
 include(":app")
