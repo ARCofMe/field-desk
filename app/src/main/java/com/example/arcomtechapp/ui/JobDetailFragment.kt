@@ -7,13 +7,18 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.Spinner
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.Fragment
 import android.widget.Toast
+import android.widget.ArrayAdapter
 import androidx.core.view.isVisible
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.models.JobCloseoutDraft
 import com.example.arcomtechapp.data.models.JobPartsCase
 import com.example.arcomtechapp.data.models.JobPhotoStatus
 import com.example.arcomtechapp.data.models.JobTimelineEntry
@@ -30,6 +35,8 @@ import com.example.arcomtechapp.viewmodel.JobDetailContext
 import com.example.arcomtechapp.viewmodel.JobDetailViewModel
 import com.example.arcomtechapp.viewmodel.SelectedJobViewModel
 import kotlinx.coroutines.Dispatchers
+import java.text.DateFormat
+import java.util.Date
 
 class JobDetailFragment : Fragment() {
 
@@ -104,6 +111,14 @@ class JobDetailFragment : Fragment() {
                 showActionFeedback(error)
             }
         }
+        detailViewModel.closeoutPreview.observe(viewLifecycleOwner) { preview ->
+            preview?.let {
+                showActionFeedback(
+                    "Closeout preview: ${it.laborLabel} • ${it.durationLabel} hrs • ${it.signoffLabel}",
+                    isError = false
+                )
+            }
+        }
     }
 
     private fun applyJobContext(context: JobDetailContext) {
@@ -163,6 +178,9 @@ class JobDetailFragment : Fragment() {
             append("Outcome: ${workflowState.finalOutcome?.replace('_', ' ') ?: "not chosen"}")
             workflowState.finalOutcomeNote?.takeIf { it.isNotBlank() }?.let {
                 append("\nReason: $it")
+            }
+            workflowState.workStartedAtEpochMillis?.let {
+                append("\nWork started: ${DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(it))}")
             }
             if (closeout.requiredPhotoLabels.isNotEmpty()) {
                 append("\nRequired photos: ${closeout.requiredPhotoLabels.joinToString(", ")}")
@@ -316,7 +334,81 @@ class JobDetailFragment : Fragment() {
             renderJob(job)
             return
         }
-        detailViewModel.updateStatus(job, "complete")
+        promptForCompletedCloseout(job)
+    }
+
+    private fun promptForCompletedCloseout(job: Job) {
+        val workflowStateRepo = requireContext().fieldDeskContainer().localWorkflowStateRepository()
+        val workflowState = workflowStateRepo.getJobWorkflowState(job.id)
+        val form = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 24, 32, 0)
+        }
+        val laborOptions = listOf(
+            "Warranty / in warranty",
+            "OOW hourly",
+            "Diagnostic fee / no defect found",
+            "Declined repair / customer refused"
+        )
+        val laborSpinner = Spinner(requireContext()).apply {
+            adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, laborOptions)
+        }
+        val durationInput = EditText(requireContext()).apply {
+            hint = "Duration minutes"
+            setText(derivedDurationMinutes(workflowState.workStartedAtEpochMillis).toString())
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        }
+        val signerInput = EditText(requireContext()).apply {
+            hint = "Signer name"
+        }
+        val summaryInput = EditText(requireContext()).apply {
+            hint = "Work performed summary"
+            minLines = 4
+            setText(workflowState.noteDraft ?: "")
+        }
+        val approvalBox = CheckBox(requireContext()).apply {
+            text = "Customer signoff captured"
+        }
+        form.addView(laborSpinner)
+        form.addView(durationInput)
+        form.addView(signerInput)
+        form.addView(summaryInput)
+        form.addView(approvalBox)
+        AlertDialog.Builder(requireContext())
+            .setTitle("Completed closeout")
+            .setView(form)
+            .setPositiveButton("Preview") { _, _ ->
+                val draft = JobCloseoutDraft(
+                    laborCode = laborCodeForSelection(laborSpinner.selectedItemPosition),
+                    workPerformed = summaryInput.text?.toString().orEmpty().trim(),
+                    startedAtEpochMs = workflowState.workStartedAtEpochMillis,
+                    endedAtEpochMs = System.currentTimeMillis(),
+                    durationMinutes = durationInput.text?.toString()?.toIntOrNull(),
+                    signedBy = signerInput.text?.toString().orEmpty().trim().ifBlank { null },
+                    customerApproved = approvalBox.isChecked,
+                    finalOutcome = "completed",
+                    outcomeNote = workflowState.finalOutcomeNote
+                )
+                if (draft.workPerformed.isBlank()) {
+                    Toast.makeText(requireContext(), "Work summary is required.", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                detailViewModel.previewCloseout(job, draft)
+                confirmCompletedCloseout(job, draft)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun confirmCompletedCloseout(job: Job, draft: JobCloseoutDraft) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Submit closeout")
+            .setMessage("Submit labor closeout for ${job.customerName} using ${draft.laborCode.replace('_', ' ')}?")
+            .setPositiveButton("Submit") { _, _ ->
+                detailViewModel.submitCloseout(job, draft)
+            }
+            .setNegativeButton("Back", null)
+            .show()
     }
 
     private fun promptForUnableToComplete(job: Job) {
@@ -364,7 +456,10 @@ class JobDetailFragment : Fragment() {
         if (event.eventId == lastHandledActionEventId) return
         lastHandledActionEventId = event.eventId
         if (event.result.success) {
+            val workflowRepo = requireContext().fieldDeskContainer().localWorkflowStateRepository()
             when (event.actionKey) {
+                "work_start" -> workflowRepo.recordWorkStarted(event.job.id)
+                "closeout_submit" -> workflowRepo.setFinalOutcome(event.job.id, "completed", event.details)
                 "no_answer", "not_home", "unable_to_complete" -> requireContext().fieldDeskContainer().localWorkflowStateRepository().setFinalOutcome(
                     event.job.id,
                     "unable_to_complete",
@@ -490,6 +585,20 @@ class JobDetailFragment : Fragment() {
             "prepay" in normalized || "pre-payment" in normalized || "cod" in normalized -> "prepayment"
             else -> "customer"
         }
+    }
+
+    private fun laborCodeForSelection(index: Int): String = when (index) {
+        0 -> "warranty"
+        1 -> "oow_hourly"
+        2 -> "diagnostic_fee"
+        3 -> "declined_repair"
+        else -> "oow_hourly"
+    }
+
+    private fun derivedDurationMinutes(startedAtEpochMillis: Long?): Int {
+        val startedAt = startedAtEpochMillis ?: return 60
+        val minutes = ((System.currentTimeMillis() - startedAt) / 60000L).toInt()
+        return minutes.coerceIn(15, 12 * 60)
     }
 
     override fun onDestroyView() {

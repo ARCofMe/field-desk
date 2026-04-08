@@ -31,7 +31,8 @@ class WorkflowHostViewModelTest {
             photoCount = 2,
             lastPhotoLabel = "Issue / part",
             finalOutcome = "unable_to_complete",
-            finalOutcomeNote = "Waiting on OEM board approval before returning."
+            finalOutcomeNote = "Waiting on OEM board approval before returning.",
+            workStartedAtEpochMillis = null
         )
         every { storage.getLastJobAction() } returns "Captured issue photo"
         every { storage.getLastJobActionJobId() } returns "123"

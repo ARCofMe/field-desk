@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.arcomtechapp.data.models.FieldDeskSession
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.models.JobCloseoutDraft
+import com.example.arcomtechapp.data.models.JobCloseoutPreview
 import com.example.arcomtechapp.data.models.JobPartsCase
 import com.example.arcomtechapp.data.models.JobPhotoStatus
 import com.example.arcomtechapp.data.models.JobTimelineEntry
@@ -47,6 +49,9 @@ class JobDetailViewModel(
 
     private val _actionEvents = MutableLiveData<JobActionEvent>()
     val actionEvents: LiveData<JobActionEvent> = _actionEvents
+
+    private val _closeoutPreview = MutableLiveData<JobCloseoutPreview?>()
+    val closeoutPreview: LiveData<JobCloseoutPreview?> = _closeoutPreview
 
     fun loadJobContext(seedJob: Job) {
         _loading.value = true
@@ -143,6 +148,24 @@ class JobDetailViewModel(
     fun reportReschedule(job: Job, reason: String) {
         runAction(job = job, actionKey = "reschedule", details = reason) { session ->
             repo.reportReschedule(session.baseUrl, session.apiKey, job.id, reason)
+        }
+    }
+
+    fun previewCloseout(job: Job, draft: JobCloseoutDraft) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val preview = try {
+                val session = sessionProvider()
+                repo.previewCloseout(session.baseUrl, session.apiKey, job.id, draft)
+            } catch (_: Exception) {
+                null
+            }
+            _closeoutPreview.postValue(preview)
+        }
+    }
+
+    fun submitCloseout(job: Job, draft: JobCloseoutDraft) {
+        runAction(job = job, actionKey = "closeout_submit", details = draft.workPerformed) { session ->
+            repo.submitCloseout(session.baseUrl, session.apiKey, job.id, draft)
         }
     }
 

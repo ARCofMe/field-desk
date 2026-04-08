@@ -3,6 +3,7 @@ package com.example.arcomtechapp.viewmodel
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.example.arcomtechapp.data.models.FieldDeskSession
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.models.JobCloseoutDraft
 import com.example.arcomtechapp.data.models.JobTimelineEntry
 import com.example.arcomtechapp.data.repo.FieldOpsRepository
 import com.example.arcomtechapp.data.repo.TechnicianActionResult
@@ -92,5 +93,35 @@ class JobDetailViewModelTest {
 
         assertEquals("call_ahead", action.actionKey)
         assertEquals("Call-ahead logged", action.result.message)
+    }
+
+    @Test
+    fun `submitCloseout emits closeout action event`() {
+        val repo = mockk<FieldOpsRepository>()
+        val seedJob = job()
+        val draft = JobCloseoutDraft(
+            laborCode = "oow_hourly",
+            workPerformed = "Replaced failed inlet valve and verified fill.",
+            durationMinutes = 90,
+            signedBy = "Pat Customer",
+            customerApproved = true
+        )
+        every { repo.submitCloseout("https://ops.example.test", "token", "100", draft) } returns
+            TechnicianActionResult(true, "Closeout submitted")
+        every { repo.getJob("https://ops.example.test", "token", "100") } returns seedJob.copy(status = "Completed")
+        every { repo.getJobPartsCase(any(), any(), any()) } returns null
+        every { repo.getJobPhotoStatus(any(), any(), any()) } returns null
+        every { repo.getJobTimeline(any(), any(), any()) } returns emptyList()
+
+        val viewModel = JobDetailViewModel(repo) { session() }
+        viewModel.submitCloseout(seedJob, draft)
+
+        val action = viewModel.actionEvents.getOrAwaitValue(time = 5)
+        val context = viewModel.context.getOrAwaitValue(time = 5)
+
+        assertEquals("closeout_submit", action.actionKey)
+        assertEquals(true, action.result.success)
+        assertEquals("Completed", context.job.status)
+        verify(exactly = 1) { repo.submitCloseout("https://ops.example.test", "token", "100", draft) }
     }
 }

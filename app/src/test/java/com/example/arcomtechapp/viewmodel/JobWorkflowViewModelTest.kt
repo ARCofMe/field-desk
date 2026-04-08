@@ -55,6 +55,7 @@ class JobWorkflowViewModelTest {
             lastPhotoLabel = null,
             finalOutcome = null,
             finalOutcomeNote = null,
+            workStartedAtEpochMillis = null,
             lastAction = "Saved guided note draft",
             lastActionJobId = "100"
         )
@@ -84,6 +85,7 @@ class JobWorkflowViewModelTest {
             lastPhotoLabel = "Overview",
             finalOutcome = null,
             finalOutcomeNote = null,
+            workStartedAtEpochMillis = null,
             lastAction = "Uploaded",
             lastActionJobId = "100"
         )

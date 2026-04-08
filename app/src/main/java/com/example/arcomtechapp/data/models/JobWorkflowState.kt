@@ -11,6 +11,7 @@ data class JobWorkflowState(
     val lastPhotoLabel: String?,
     val finalOutcome: String?,
     val finalOutcomeNote: String?,
+    val workStartedAtEpochMillis: Long?,
     val lastAction: String?,
     val lastActionJobId: String?
 ) {

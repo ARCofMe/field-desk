@@ -42,7 +42,8 @@ class Storage(context: Context) {
         val photoCount: Int,
         val lastPhotoLabel: String?,
         val finalOutcome: String?,
-        val finalOutcomeNote: String?
+        val finalOutcomeNote: String?,
+        val workStartedAtEpochMillis: Long?
     )
 
     enum class BackendMode {
@@ -249,8 +250,26 @@ class Storage(context: Context) {
         photoCount = getJobPhotoCount(jobId),
         lastPhotoLabel = getJobLastPhotoLabel(jobId),
         finalOutcome = getJobFinalOutcome(jobId),
-        finalOutcomeNote = getJobFinalOutcomeNote(jobId)
+        finalOutcomeNote = getJobFinalOutcomeNote(jobId),
+        workStartedAtEpochMillis = getJobWorkStartedAt(jobId)
     )
+
+    fun setJobWorkStartedAt(jobId: String?, timestamp: Long?) {
+        if (jobId.isNullOrBlank()) return
+        prefs.edit().apply {
+            if (timestamp == null || timestamp <= 0L) {
+                remove(jobWorkStartedAtKey(jobId))
+            } else {
+                putLong(jobWorkStartedAtKey(jobId), timestamp)
+            }
+        }.apply()
+    }
+
+    fun getJobWorkStartedAt(jobId: String?): Long? {
+        if (jobId.isNullOrBlank()) return null
+        val value = prefs.getLong(jobWorkStartedAtKey(jobId), 0L)
+        return value.takeIf { it > 0L }
+    }
 
     fun setJobNoteSyncState(jobId: String?, pending: Boolean, message: String? = null) {
         if (jobId.isNullOrBlank()) return
@@ -378,4 +397,6 @@ class Storage(context: Context) {
     private fun jobFinalOutcomeKey(jobId: String): String = "job_final_outcome_$jobId"
 
     private fun jobFinalOutcomeNoteKey(jobId: String): String = "job_final_outcome_note_$jobId"
+
+    private fun jobWorkStartedAtKey(jobId: String): String = "job_work_started_at_$jobId"
 }

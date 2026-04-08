@@ -2,6 +2,8 @@ package com.example.arcomtechapp.data.repo
 
 import com.example.arcomtechapp.data.models.Assignment
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.models.JobCloseoutDraft
+import com.example.arcomtechapp.data.models.JobCloseoutPreview
 import com.example.arcomtechapp.data.models.JobPartsCase
 import com.example.arcomtechapp.data.models.JobPhotoStatus
 import com.example.arcomtechapp.data.models.JobTimelineEntry
@@ -67,4 +69,7 @@ interface FieldOpsRepository {
         TechnicianActionResult(false, "Not-home flow is not available for this backend")
     fun reportUnableToComplete(baseUrl: String?, apiKey: String?, jobId: String, reason: String): TechnicianActionResult =
         TechnicianActionResult(false, "Unable-to-complete flow is not available for this backend")
+    fun previewCloseout(baseUrl: String?, apiKey: String?, jobId: String, draft: JobCloseoutDraft): JobCloseoutPreview? = null
+    fun submitCloseout(baseUrl: String?, apiKey: String?, jobId: String, draft: JobCloseoutDraft): TechnicianActionResult =
+        TechnicianActionResult(false, "Closeout labor flow is not available for this backend")
 }

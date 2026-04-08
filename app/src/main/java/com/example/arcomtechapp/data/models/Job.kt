@@ -76,3 +76,28 @@ data class JobTimelineEntry(
     val details: String? = null,
     val actorLabel: String? = null
 ) : Serializable
+
+data class JobCloseoutDraft(
+    val laborCode: String,
+    val workPerformed: String,
+    val startedAtEpochMs: Long? = null,
+    val endedAtEpochMs: Long? = null,
+    val durationMinutes: Int? = null,
+    val signedBy: String? = null,
+    val customerApproved: Boolean = false,
+    val finalOutcome: String = "completed",
+    val outcomeNote: String? = null
+) : Serializable
+
+data class JobCloseoutPreview(
+    val laborCode: String,
+    val laborLabel: String,
+    val billable: Boolean,
+    val dateWorked: String,
+    val startTime: String,
+    val endTime: String,
+    val durationMinutes: Int,
+    val durationLabel: String,
+    val workPerformed: String,
+    val signoffLabel: String
+) : Serializable

@@ -2,6 +2,8 @@ package com.example.arcomtechapp.data.repo
 
 import com.example.arcomtechapp.data.models.Assignment
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.data.models.JobCloseoutDraft
+import com.example.arcomtechapp.data.models.JobCloseoutPreview
 import com.example.arcomtechapp.data.models.JobPartsCase
 import com.example.arcomtechapp.data.models.JobPhotoRecord
 import com.example.arcomtechapp.data.models.JobPhotoStatus
@@ -222,6 +224,37 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
     override fun reportUnableToComplete(baseUrl: String?, apiKey: String?, jobId: String, reason: String): TechnicianActionResult =
         postAction(baseUrl, apiKey, "/tech/jobs/$jobId/unable_to_complete", JSONObject().put("reason", reason))
 
+    override fun previewCloseout(baseUrl: String?, apiKey: String?, jobId: String, draft: JobCloseoutDraft): JobCloseoutPreview? {
+        return try {
+            val obj = JSONObject(
+                request(
+                    "POST",
+                    baseUrl,
+                    apiKey,
+                    "/tech/jobs/$jobId/closeout/preview",
+                    closeoutPayload(draft).toString()
+                )
+            )
+            JobCloseoutPreview(
+                laborCode = obj.optString("laborCode"),
+                laborLabel = obj.optString("laborLabel"),
+                billable = obj.optBoolean("billable"),
+                dateWorked = obj.optString("dateWorked"),
+                startTime = obj.optString("startTime"),
+                endTime = obj.optString("endTime"),
+                durationMinutes = obj.optInt("durationMinutes"),
+                durationLabel = obj.optString("durationLabel"),
+                workPerformed = obj.optString("workPerformed"),
+                signoffLabel = obj.optString("signoffLabel")
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    override fun submitCloseout(baseUrl: String?, apiKey: String?, jobId: String, draft: JobCloseoutDraft): TechnicianActionResult =
+        postAction(baseUrl, apiKey, "/tech/jobs/$jobId/closeout/submit", closeoutPayload(draft))
+
     private fun buildPath(
         basePath: String,
         techId: String? = null,
@@ -379,4 +412,17 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
     }
 
     private fun encode(value: String): String = URLEncoder.encode(value, "UTF-8")
+
+    private fun closeoutPayload(draft: JobCloseoutDraft): JSONObject = JSONObject()
+        .put("laborCode", draft.laborCode)
+        .put("workPerformed", draft.workPerformed)
+        .put("customerApproved", draft.customerApproved)
+        .put("finalOutcome", draft.finalOutcome)
+        .put("signedBy", draft.signedBy)
+        .put("outcomeNote", draft.outcomeNote)
+        .apply {
+            draft.startedAtEpochMs?.let { put("startedAtEpochMs", it) }
+            draft.endedAtEpochMs?.let { put("endedAtEpochMs", it) }
+            draft.durationMinutes?.let { put("durationMinutes", it) }
+        }
 }

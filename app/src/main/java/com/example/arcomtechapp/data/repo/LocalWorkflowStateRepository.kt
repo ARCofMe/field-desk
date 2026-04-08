@@ -23,6 +23,7 @@ class LocalWorkflowStateRepository(
             lastPhotoLabel = progress.lastPhotoLabel,
             finalOutcome = progress.finalOutcome,
             finalOutcomeNote = progress.finalOutcomeNote,
+            workStartedAtEpochMillis = progress.workStartedAtEpochMillis,
             lastAction = storage.getLastJobAction(),
             lastActionJobId = storage.getLastJobActionJobId()
         )
@@ -60,6 +61,11 @@ class LocalWorkflowStateRepository(
 
     fun recordPhotoCapture(jobId: String?, label: String) {
         storage.recordJobPhotoCapture(jobId, label)
+        notifyUpdated(jobId)
+    }
+
+    fun recordWorkStarted(jobId: String?, timestamp: Long = System.currentTimeMillis()) {
+        storage.setJobWorkStartedAt(jobId, timestamp)
         notifyUpdated(jobId)
     }
 
