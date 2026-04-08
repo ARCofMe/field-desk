@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_gradient_primary"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <include layout="@layout/include_header_app" />
+
+    <TextView
+        android:id="@+id/text_workflow_host_eyebrow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/fielddesk_guided_workflow"
+        android:textColor="@color/brand_accent"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/text_workflow_host_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/fielddesk_workflow_no_job_title"
+        android:textColor="@color/brand_text"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/text_workflow_host_summary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/fielddesk_workflow_no_job_summary"
+        android:textColor="@color/brand_subtle_text" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/button_workflow_overview"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/fielddesk_workflow_tab_overview" />
+
+        <Button
+            android:id="@+id/button_workflow_notes"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/fielddesk_workflow_tab_notes" />
+
+        <Button
+            android:id="@+id/button_workflow_photos"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/fielddesk_workflow_tab_photos" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layout_workflow_empty_state"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="@android:color/white"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/fielddesk_workflow_no_job_title"
+            android:textColor="@color/brand_text"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/fielddesk_workflow_no_job_summary"
+            android:textColor="@color/brand_subtle_text" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/workflow_child_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_weight="1" />
+
+</LinearLayout>

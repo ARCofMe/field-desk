@@ -45,6 +45,18 @@
     <string name="fielddesk_action_not_home">Not home</string>
     <string name="fielddesk_last_action_this_job">Last action on this job: %1$s</string>
     <string name="fielddesk_last_action_other_job">Last local action: %1$s on job #%2$s</string>
+    <string name="fielddesk_workflow_tab_overview">Overview</string>
+    <string name="fielddesk_workflow_tab_notes">Notes</string>
+    <string name="fielddesk_workflow_tab_photos">Photos</string>
+    <string name="fielddesk_workflow_no_job_title">No active workflow selected</string>
+    <string name="fielddesk_workflow_no_job_summary">Pick a stop from Today or Queue, then stay inside this workspace for notes, photos, and field actions.</string>
+    <string name="fielddesk_workflow_missing_address">Address not provided</string>
+    <string name="fielddesk_workflow_eyebrow_detail">Job overview</string>
+    <string name="fielddesk_workflow_eyebrow_notes">Guided notes</string>
+    <string name="fielddesk_workflow_eyebrow_photos">Photo capture</string>
+    <string name="fielddesk_workflow_summary_detail">Use this view to run job actions, customer contact, and closeout.</string>
+    <string name="fielddesk_workflow_summary_notes">Capture the field story before details get lost.</string>
+    <string name="fielddesk_workflow_summary_photos">Capture required proof and compliance photos before closeout.</string>
     <string-array name="job_date_range_types">
         <item>scheduled</item>
         <item>created</item>

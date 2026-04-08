@@ -3,6 +3,7 @@ package com.example.arcomtechapp.ui
 import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
+import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -12,6 +13,8 @@ import com.example.arcomtechapp.R
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.ui.settings.SettingsActivity
 import com.example.arcomtechapp.ui.theme.AppThemeResolver
+import com.example.arcomtechapp.viewmodel.SelectedJobViewModel
+import com.example.arcomtechapp.viewmodel.WorkflowPanel
 import com.google.android.material.navigation.NavigationView
 
 class MainActivity : AppCompatActivity(),
@@ -19,19 +22,17 @@ class MainActivity : AppCompatActivity(),
     FieldDeskNavigator {
 
     private enum class Destination(
-        val menuId: Int?,
-        val addToBackStack: Boolean
+        val menuId: Int?
     ) {
-        TODAY(R.id.nav_dashboard, false),
-        JOBS(R.id.nav_jobs, false),
-        PHOTOS(R.id.nav_photos, false),
-        NOTES(R.id.nav_notes, false),
-        JOB_DETAIL(null, true),
+        TODAY(R.id.nav_dashboard),
+        JOBS(R.id.nav_jobs),
+        WORKFLOW(null),
     }
 
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var navView: NavigationView
     private lateinit var storage: Storage
+    private val selectedJobViewModel: SelectedJobViewModel by viewModels()
     private var appliedThemeMode: Int = Int.MIN_VALUE
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,38 +108,50 @@ class MainActivity : AppCompatActivity(),
 
     override fun openJobs() = navigateTo(Destination.JOBS)
 
-    override fun openPhotos() = navigateTo(Destination.PHOTOS)
+    override fun openPhotos() {
+        selectedJobViewModel.openWorkflowPanel(WorkflowPanel.PHOTOS)
+        navigateTo(Destination.WORKFLOW, R.id.nav_photos)
+    }
 
-    override fun openNotes() = navigateTo(Destination.NOTES)
+    override fun openNotes() {
+        selectedJobViewModel.openWorkflowPanel(WorkflowPanel.NOTES)
+        navigateTo(Destination.WORKFLOW, R.id.nav_notes)
+    }
 
-    override fun openJobDetail() = navigateTo(Destination.JOB_DETAIL)
+    override fun openJobDetail() {
+        selectedJobViewModel.openWorkflowPanel(WorkflowPanel.DETAIL)
+        navigateTo(Destination.WORKFLOW)
+    }
 
     override fun openSettings() {
         startActivity(Intent(this, SettingsActivity::class.java))
     }
 
-    private fun navigateTo(destination: Destination) {
-        if (!destination.addToBackStack) {
-            supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
+    private fun navigateTo(destination: Destination, checkedMenuId: Int? = destination.menuId) {
+        supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
+        if (currentDestination() == destination) {
+            checkedMenuId?.let(navView::setCheckedItem)
+            drawerLayout.closeDrawers()
+            return
         }
         supportFragmentManager.beginTransaction()
             .replace(R.id.content_frame, destination.fragment())
-            .apply {
-                if (destination.addToBackStack) {
-                    addToBackStack(destination.name)
-                }
-            }
             .commit()
-        destination.menuId?.let(navView::setCheckedItem)
+        checkedMenuId?.let(navView::setCheckedItem)
         drawerLayout.closeDrawers()
     }
 
     private fun Destination.fragment(): androidx.fragment.app.Fragment = when (this) {
         Destination.TODAY -> TodayFragment()
         Destination.JOBS -> JobsFragment()
-        Destination.PHOTOS -> PhotosFragment()
-        Destination.NOTES -> NotesFragment()
-        Destination.JOB_DETAIL -> JobDetailFragment()
+        Destination.WORKFLOW -> WorkflowHostFragment()
+    }
+
+    private fun currentDestination(): Destination? = when (supportFragmentManager.findFragmentById(R.id.content_frame)) {
+        is TodayFragment -> Destination.TODAY
+        is JobsFragment -> Destination.JOBS
+        is WorkflowHostFragment -> Destination.WORKFLOW
+        else -> null
     }
 
     private fun updateNavHeader() {
