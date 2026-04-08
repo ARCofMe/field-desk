@@ -25,7 +25,7 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
 
     override fun getAssignmentsForUser(techId: String): List<Assignment> {
         val response = request("GET", null, null, "/tech/assignments?technician_id=${encode(techId)}")
-        val items = JSONArray(response)
+        val items = parseItemsArray(response)
         return buildList {
             for (i in 0 until items.length()) {
                 val obj = items.getJSONObject(i)
@@ -240,7 +240,7 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
 
     private fun fetchJobs(baseUrl: String?, apiKey: String?, path: String): List<Job> {
         val body = request("GET", baseUrl, apiKey, path)
-        val items = JSONArray(body)
+        val items = parseItemsArray(body)
         return buildList {
             for (i in 0 until items.length()) {
                 val obj = items.getJSONObject(i)
@@ -351,6 +351,14 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
         val jsonMessage = runCatching { JSONObject(response).optString("message") }.getOrNull()?.takeIf { it.isNotBlank() }
         val bodyMessage = jsonMessage ?: response.take(200).trim().ifBlank { "Unexpected server response." }
         return "HTTP $statusCode: $bodyMessage"
+    }
+
+    private fun parseItemsArray(response: String): JSONArray {
+        return when {
+            response.trimStart().startsWith("[") -> JSONArray(response)
+            response.trimStart().startsWith("{") -> JSONObject(response).optJSONArray("items") ?: JSONArray()
+            else -> JSONArray()
+        }
     }
 
     private fun normalizeBaseUrl(baseUrl: String?): String? {
