@@ -19,6 +19,8 @@ Required to operate:
 - active base URL for the selected backend
 - active API key for the selected backend
 - technician ID
+  - when using `Ops Hub`, this can be either a BlueFolder technician user ID or a Discord-linked technician ID
+  - when using `BlueFolder` directly, use the BlueFolder technician user ID
 
 Optional:
 
