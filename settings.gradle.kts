@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "field-desk"
+rootProject.name = "FieldDesk"
 include(":app")
