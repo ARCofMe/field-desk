@@ -26,6 +26,7 @@ class Storage(context: Context) {
         val themeMode: Int,
         val routeOrigin: String?,
         val routeDestination: String?,
+        val opsHubUrl: String?,
         val routeDeskUrl: String?,
         val partsDeskUrl: String?,
         val lastJobAction: String?,
@@ -215,6 +216,14 @@ class Storage(context: Context) {
 
     fun getRouteDestination(): String? = prefs.getString(KEY_ROUTE_DESTINATION, null)
 
+    fun saveOpsHubUrl(url: String?) {
+        prefs.edit().apply {
+            if (url.isNullOrBlank()) remove(KEY_OPS_HUB_URL) else putString(KEY_OPS_HUB_URL, url)
+        }.apply()
+    }
+
+    fun getOpsHubUrl(): String? = prefs.getString(KEY_OPS_HUB_URL, null)
+
     fun saveRouteDeskUrl(url: String?) {
         prefs.edit().apply {
             if (url.isNullOrBlank()) remove(KEY_ROUTE_DESK_URL) else putString(KEY_ROUTE_DESK_URL, url)
@@ -361,6 +370,7 @@ class Storage(context: Context) {
         themeMode = getThemeMode(),
         routeOrigin = getRouteOrigin(),
         routeDestination = getRouteDestination(),
+        opsHubUrl = getOpsHubUrl(),
         routeDeskUrl = getRouteDeskUrl(),
         partsDeskUrl = getPartsDeskUrl(),
         lastJobAction = getLastJobAction(),
@@ -400,6 +410,7 @@ class Storage(context: Context) {
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_ROUTE_ORIGIN = "route_origin"
         const val KEY_ROUTE_DESTINATION = "route_destination"
+        const val KEY_OPS_HUB_URL = "ops_hub_url"
         const val KEY_ROUTE_DESK_URL = "route_desk_url"
         const val KEY_PARTS_DESK_URL = "parts_desk_url"
         const val KEY_LAST_JOB_ACTION = "last_job_action"

@@ -185,6 +185,16 @@
                         android:textColor="@color/brand_text" />
 
                     <Button
+                        android:id="@+id/button_open_ops_hub"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="@color/brand_surface_light"
+                        android:text="@string/fielddesk_open_ops_hub"
+                        android:textColor="@color/brand_text" />
+
+                    <Button
                         android:id="@+id/button_open_parts_desk"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"

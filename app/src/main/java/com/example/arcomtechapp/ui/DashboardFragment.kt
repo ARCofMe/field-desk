@@ -63,6 +63,13 @@ class DashboardFragment : Fragment() {
                 invalidMessage = getString(R.string.fielddesk_workspace_invalid_url)
             )
         }
+        binding.buttonOpenOpsHub.setOnClickListener {
+            openConfiguredWorkspace(
+                url = storage.getOpsHubUrl(),
+                missingMessage = getString(R.string.fielddesk_ops_hub_missing),
+                invalidMessage = getString(R.string.fielddesk_workspace_invalid_url)
+            )
+        }
         binding.buttonOpenPartsDesk.setOnClickListener {
             openConfiguredWorkspace(
                 url = storage.getPartsDeskUrl(),
@@ -162,10 +169,13 @@ class DashboardFragment : Fragment() {
     }
 
     private fun updateWorkspaceButtons() {
+        val opsHubUrl = normalizeWorkspaceUrl(storage.getOpsHubUrl())
         val routeDeskUrl = normalizeWorkspaceUrl(storage.getRouteDeskUrl())
         val partsDeskUrl = normalizeWorkspaceUrl(storage.getPartsDeskUrl())
+        binding.buttonOpenOpsHub.isEnabled = opsHubUrl != null
         binding.buttonOpenRouteDesk.isEnabled = routeDeskUrl != null
         binding.buttonOpenPartsDesk.isEnabled = partsDeskUrl != null
+        binding.buttonOpenOpsHub.alpha = if (opsHubUrl != null) 1f else 0.55f
         binding.buttonOpenRouteDesk.alpha = if (routeDeskUrl != null) 1f else 0.55f
         binding.buttonOpenPartsDesk.alpha = if (partsDeskUrl != null) 1f else 0.55f
     }
@@ -186,7 +196,12 @@ class DashboardFragment : Fragment() {
     private fun normalizeWorkspaceUrl(url: String?): Uri? {
         if (url.isNullOrBlank()) return null
         val normalized = url.trim()
-        val parsed = Uri.parse(normalized)
+        val withScheme = if (Regex("^[a-z][a-z\\d+\\-.]*://", RegexOption.IGNORE_CASE).containsMatchIn(normalized)) {
+            normalized
+        } else {
+            "https://$normalized"
+        }
+        val parsed = Uri.parse(withScheme)
         val scheme = parsed.scheme?.lowercase()
         return if ((scheme == "http" || scheme == "https") && !parsed.host.isNullOrBlank()) parsed else null
     }
