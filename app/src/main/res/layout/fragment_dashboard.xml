@@ -157,7 +157,43 @@
                     android:layout_marginTop="8dp"
                     android:backgroundTint="@color/brand_accent"
                     android:textColor="@color/brand_primary_dark"
-                    android:text="Optimize route in Google Maps" />
+                    android:text="@string/fielddesk_optimize_route_in_google_maps" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/fielddesk_workspace_links_title"
+                    android:textColor="@color/brand_subtle_text"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/button_open_route_desk"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:backgroundTint="@color/brand_primary"
+                        android:text="@string/fielddesk_open_route_desk"
+                        android:textColor="@color/brand_text" />
+
+                    <Button
+                        android:id="@+id/button_open_parts_desk"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="@color/brand_success"
+                        android:text="@string/fielddesk_open_parts_desk"
+                        android:textColor="@color/brand_primary_dark" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

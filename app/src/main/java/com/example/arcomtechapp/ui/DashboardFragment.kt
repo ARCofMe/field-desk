@@ -56,10 +56,30 @@ class DashboardFragment : Fragment() {
             updateConnectionBanner()
         }
         binding.buttonOptimizeRoute.setOnClickListener { launchOptimizedRoute() }
+        binding.buttonOpenRouteDesk.setOnClickListener {
+            openConfiguredWorkspace(
+                url = storage.getRouteDeskUrl(),
+                missingMessage = getString(R.string.fielddesk_route_desk_missing),
+                invalidMessage = getString(R.string.fielddesk_workspace_invalid_url)
+            )
+        }
+        binding.buttonOpenPartsDesk.setOnClickListener {
+            openConfiguredWorkspace(
+                url = storage.getPartsDeskUrl(),
+                missingMessage = getString(R.string.fielddesk_parts_desk_missing),
+                invalidMessage = getString(R.string.fielddesk_workspace_invalid_url)
+            )
+        }
 
         observeViewModel()
         updateConnectionBanner()
+        updateWorkspaceButtons()
         viewModel.loadDashboard(requireContext().fieldDeskContainer().currentSession())
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateWorkspaceButtons()
     }
 
     private fun observeViewModel() {
@@ -140,6 +160,37 @@ class DashboardFragment : Fragment() {
             append("&travelmode=driving")
         }
     }
+
+    private fun updateWorkspaceButtons() {
+        val routeDeskUrl = normalizeWorkspaceUrl(storage.getRouteDeskUrl())
+        val partsDeskUrl = normalizeWorkspaceUrl(storage.getPartsDeskUrl())
+        binding.buttonOpenRouteDesk.isEnabled = routeDeskUrl != null
+        binding.buttonOpenPartsDesk.isEnabled = partsDeskUrl != null
+        binding.buttonOpenRouteDesk.alpha = if (routeDeskUrl != null) 1f else 0.55f
+        binding.buttonOpenPartsDesk.alpha = if (partsDeskUrl != null) 1f else 0.55f
+    }
+
+    private fun openConfiguredWorkspace(url: String?, missingMessage: String, invalidMessage: String) {
+        if (url.isNullOrBlank()) {
+            Toast.makeText(requireContext(), missingMessage, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val normalizedUrl = normalizeWorkspaceUrl(url)
+        if (normalizedUrl == null) {
+            Toast.makeText(requireContext(), invalidMessage, Toast.LENGTH_SHORT).show()
+            return
+        }
+        startActivity(Intent(Intent.ACTION_VIEW, normalizedUrl))
+    }
+
+    private fun normalizeWorkspaceUrl(url: String?): Uri? {
+        if (url.isNullOrBlank()) return null
+        val normalized = url.trim()
+        val parsed = Uri.parse(normalized)
+        val scheme = parsed.scheme?.lowercase()
+        return if ((scheme == "http" || scheme == "https") && !parsed.host.isNullOrBlank()) parsed else null
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

@@ -26,6 +26,8 @@ class Storage(context: Context) {
         val themeMode: Int,
         val routeOrigin: String?,
         val routeDestination: String?,
+        val routeDeskUrl: String?,
+        val partsDeskUrl: String?,
         val lastJobAction: String?,
         val lastJobActionJobId: String?
     )
@@ -213,6 +215,22 @@ class Storage(context: Context) {
 
     fun getRouteDestination(): String? = prefs.getString(KEY_ROUTE_DESTINATION, null)
 
+    fun saveRouteDeskUrl(url: String?) {
+        prefs.edit().apply {
+            if (url.isNullOrBlank()) remove(KEY_ROUTE_DESK_URL) else putString(KEY_ROUTE_DESK_URL, url)
+        }.apply()
+    }
+
+    fun getRouteDeskUrl(): String? = prefs.getString(KEY_ROUTE_DESK_URL, null)
+
+    fun savePartsDeskUrl(url: String?) {
+        prefs.edit().apply {
+            if (url.isNullOrBlank()) remove(KEY_PARTS_DESK_URL) else putString(KEY_PARTS_DESK_URL, url)
+        }.apply()
+    }
+
+    fun getPartsDeskUrl(): String? = prefs.getString(KEY_PARTS_DESK_URL, null)
+
     fun saveLastJobAction(jobId: String?, action: String?) {
         prefs.edit().apply {
             if (jobId.isNullOrBlank()) remove(KEY_LAST_JOB_ACTION_JOB_ID) else putString(KEY_LAST_JOB_ACTION_JOB_ID, jobId)
@@ -343,6 +361,8 @@ class Storage(context: Context) {
         themeMode = getThemeMode(),
         routeOrigin = getRouteOrigin(),
         routeDestination = getRouteDestination(),
+        routeDeskUrl = getRouteDeskUrl(),
+        partsDeskUrl = getPartsDeskUrl(),
         lastJobAction = getLastJobAction(),
         lastJobActionJobId = getLastJobActionJobId()
     )
@@ -380,6 +400,8 @@ class Storage(context: Context) {
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_ROUTE_ORIGIN = "route_origin"
         const val KEY_ROUTE_DESTINATION = "route_destination"
+        const val KEY_ROUTE_DESK_URL = "route_desk_url"
+        const val KEY_PARTS_DESK_URL = "parts_desk_url"
         const val KEY_LAST_JOB_ACTION = "last_job_action"
         const val KEY_LAST_JOB_ACTION_JOB_ID = "last_job_action_job_id"
     }
