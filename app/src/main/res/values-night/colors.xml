@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="brand_primary">#162126</color>
-    <color name="brand_primary_dark">#0F1619</color>
-    <color name="brand_accent">#41A899</color>
-    <color name="brand_accent_dark">#2B7F72</color>
-    <color name="brand_surface">#121C1E</color>
-    <color name="brand_surface_light">#1C2A2D</color>
-    <color name="brand_card_stroke">#314347</color>
-    <color name="brand_text">#EDF2EE</color>
-    <color name="brand_subtle_text">#CAD7D1</color>
-    <color name="brand_button_text">#0F1619</color>
-    <color name="brand_warn">#D6A24D</color>
-    <color name="brand_success">#73C88C</color>
-    <color name="brand_glow">#3341A899</color>
-    <color name="brand_glow_fade">#00162126</color>
+    <color name="brand_primary">#08111E</color>
+    <color name="brand_primary_dark">#060D18</color>
+    <color name="brand_accent">#3B82F6</color>
+    <color name="brand_accent_dark">#1D4ED8</color>
+    <color name="brand_surface">#0A1324</color>
+    <color name="brand_surface_light">#101B30</color>
+    <color name="brand_card_stroke">#233755</color>
+    <color name="brand_text">#F8FAFC</color>
+    <color name="brand_subtle_text">#CBD5E1</color>
+    <color name="brand_button_text">#08111E</color>
+    <color name="brand_warn">#F59E0B</color>
+    <color name="brand_success">#22C55E</color>
+    <color name="brand_glow">#333B82F6</color>
+    <color name="brand_glow_fade">#0008111E</color>
+    <color name="brand_alert">#EF4444</color>
 </resources>

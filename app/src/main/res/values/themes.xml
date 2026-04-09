@@ -13,6 +13,8 @@
         <item name="android:navigationBarColor">@color/brand_primary_dark</item>
         <item name="android:windowBackground">@color/brand_surface</item>
         <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="colorSurface">@color/brand_surface_light</item>
+        <item name="colorOnSurface">@color/brand_text</item>
         <item name="materialCardViewStyle">@style/Widget.ARCoM.Card</item>
         <item name="toolbarStyle">@style/Widget.ARCoM.Toolbar</item>
         <item name="materialButtonStyle">@style/Widget.ARCoM.Button</item>
@@ -35,6 +37,7 @@
         <item name="android:background">@color/brand_primary</item>
         <item name="titleTextColor">@color/brand_text</item>
         <item name="subtitleTextColor">@color/brand_subtle_text</item>
+        <item name="navigationIconTint">@color/brand_text</item>
     </style>
 
     <style name="Widget.ARCoM.Button" parent="Widget.MaterialComponents.Button">
@@ -42,6 +45,7 @@
         <item name="android:textAllCaps">false</item>
         <item name="android:insetTop">10dp</item>
         <item name="android:insetBottom">10dp</item>
+        <item name="cornerRadius">14dp</item>
     </style>
 
     <style name="Widget.ARCoM.Switch" parent="Widget.MaterialComponents.CompoundButton.Switch">

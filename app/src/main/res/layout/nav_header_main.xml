@@ -22,7 +22,7 @@
         android:layout_marginTop="8dp"
         android:text="@string/fielddesk_nav_title"
         android:textColor="@color/brand_text"
-        android:textSize="18sp"
+        android:textSize="20sp"
         android:textStyle="bold" />
 
     <TextView
@@ -30,5 +30,5 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/fielddesk_nav_subtitle"
-        android:textColor="@color/brand_subtle_text" />
+        android:textColor="@color/brand_accent" />
 </LinearLayout>
