@@ -14,6 +14,7 @@ import com.example.arcomtechapp.R
 import com.example.arcomtechapp.databinding.FragmentDashboardBinding
 import com.example.arcomtechapp.runtime.fieldDeskContainer
 import com.example.arcomtechapp.storage.Storage
+import com.example.arcomtechapp.util.WorkspaceLinks
 import com.example.arcomtechapp.viewmodel.SelectedJobViewModel
 import com.example.arcomtechapp.viewmodel.TechnicianDashboardViewModel
 
@@ -169,9 +170,9 @@ class DashboardFragment : Fragment() {
     }
 
     private fun updateWorkspaceButtons() {
-        val opsHubUrl = normalizeWorkspaceUrl(storage.getOpsHubUrl())
-        val routeDeskUrl = normalizeWorkspaceUrl(storage.getRouteDeskUrl())
-        val partsDeskUrl = normalizeWorkspaceUrl(storage.getPartsDeskUrl())
+        val opsHubUrl = WorkspaceLinks.normalizeUrl(storage.getOpsHubUrl())
+        val routeDeskUrl = WorkspaceLinks.normalizeUrl(storage.getRouteDeskUrl())
+        val partsDeskUrl = WorkspaceLinks.normalizeUrl(storage.getPartsDeskUrl())
         binding.buttonOpenOpsHub.isEnabled = opsHubUrl != null
         binding.buttonOpenRouteDesk.isEnabled = routeDeskUrl != null
         binding.buttonOpenPartsDesk.isEnabled = partsDeskUrl != null
@@ -185,25 +186,12 @@ class DashboardFragment : Fragment() {
             Toast.makeText(requireContext(), missingMessage, Toast.LENGTH_SHORT).show()
             return
         }
-        val normalizedUrl = normalizeWorkspaceUrl(url)
+        val normalizedUrl = WorkspaceLinks.normalizeUrl(url)
         if (normalizedUrl == null) {
             Toast.makeText(requireContext(), invalidMessage, Toast.LENGTH_SHORT).show()
             return
         }
         startActivity(Intent(Intent.ACTION_VIEW, normalizedUrl))
-    }
-
-    private fun normalizeWorkspaceUrl(url: String?): Uri? {
-        if (url.isNullOrBlank()) return null
-        val normalized = url.trim()
-        val withScheme = if (Regex("^[a-z][a-z\\d+\\-.]*://", RegexOption.IGNORE_CASE).containsMatchIn(normalized)) {
-            normalized
-        } else {
-            "https://$normalized"
-        }
-        val parsed = Uri.parse(withScheme)
-        val scheme = parsed.scheme?.lowercase()
-        return if ((scheme == "http" || scheme == "https") && !parsed.host.isNullOrBlank()) parsed else null
     }
 
     override fun onDestroyView() {

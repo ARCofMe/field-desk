@@ -36,6 +36,7 @@
     <string name="fielddesk_customer_context">Customer context</string>
     <string name="fielddesk_workspace_links_title">OpsHub ecosystem</string>
     <string name="fielddesk_workspace_links_summary">Save the browser links for sibling apps so dispatch and parts stay one tap away from the truck.</string>
+    <string name="fielddesk_workspace_summary">%1$d of %2$d workspace launchers configured</string>
     <string name="fielddesk_ops_hub_url_hint">OpsHub URL</string>
     <string name="fielddesk_route_desk_url_hint">RouteDesk URL</string>
     <string name="fielddesk_parts_desk_url_hint">PartsDesk URL</string>

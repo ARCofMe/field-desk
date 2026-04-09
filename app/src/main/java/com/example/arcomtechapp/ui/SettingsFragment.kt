@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.databinding.FragmentSettingsBinding
 import com.example.arcomtechapp.storage.Storage
+import com.example.arcomtechapp.util.WorkspaceLinks
 import android.widget.Toast
 
 class SettingsFragment : Fragment() {
@@ -29,6 +30,7 @@ class SettingsFragment : Fragment() {
         binding.inputOpsHubUrl.setText(storage.getOpsHubUrl().orEmpty())
         binding.inputRouteDeskUrl.setText(storage.getRouteDeskUrl().orEmpty())
         binding.inputPartsDeskUrl.setText(storage.getPartsDeskUrl().orEmpty())
+        updateWorkspaceSummary()
     }
 
     private fun saveRoutePrefs() {
@@ -37,6 +39,16 @@ class SettingsFragment : Fragment() {
         storage.saveOpsHubUrl(binding.inputOpsHubUrl.text?.toString())
         storage.saveRouteDeskUrl(binding.inputRouteDeskUrl.text?.toString())
         storage.savePartsDeskUrl(binding.inputPartsDeskUrl.text?.toString())
+        updateWorkspaceSummary()
         Toast.makeText(requireContext(), getString(R.string.fielddesk_settings_saved), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateWorkspaceSummary() {
+        val configured = WorkspaceLinks.configuredCount(
+            binding.inputOpsHubUrl.text?.toString(),
+            binding.inputRouteDeskUrl.text?.toString(),
+            binding.inputPartsDeskUrl.text?.toString()
+        )
+        binding.textWorkspaceSummary.text = getString(R.string.fielddesk_workspace_summary, configured, 3)
     }
 }

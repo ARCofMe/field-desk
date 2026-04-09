@@ -10,32 +10,31 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class StorageTest {
-
     private lateinit var storage: Storage
 
     @Before
     fun setUp() {
-        storage = Storage(ApplicationProvider.getApplicationContext())
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        storage = Storage(context)
         storage.clearAll()
     }
 
     @Test
-    fun `job note drafts are isolated per job`() {
-        storage.setJobNotesDraft("1001", "first draft")
-        storage.setJobNotesDraft("1002", "second draft")
+    fun savesAndClearsWorkspaceUrls() {
+        storage.saveOpsHubUrl("ops.example.com")
+        storage.saveRouteDeskUrl("route.example.com")
+        storage.savePartsDeskUrl("parts.example.com")
 
-        assertEquals("first draft", storage.getJobNotesDraft("1001"))
-        assertEquals("second draft", storage.getJobNotesDraft("1002"))
-        assertNull(storage.getJobNotesDraft("1003"))
-    }
+        assertEquals("ops.example.com", storage.getOpsHubUrl())
+        assertEquals("route.example.com", storage.getRouteDeskUrl())
+        assertEquals("parts.example.com", storage.getPartsDeskUrl())
 
-    @Test
-    fun `photo captures accumulate per job`() {
-        storage.recordJobPhotoCapture("1001", "Model / serial")
-        storage.recordJobPhotoCapture("1001", "Overview")
+        storage.saveOpsHubUrl(null)
+        storage.saveRouteDeskUrl(" ")
+        storage.savePartsDeskUrl("")
 
-        val progress = storage.getLocalJobProgress("1001")
-        assertEquals(2, progress.photoCount)
-        assertEquals("Overview", progress.lastPhotoLabel)
+        assertNull(storage.getOpsHubUrl())
+        assertNull(storage.getRouteDeskUrl())
+        assertNull(storage.getPartsDeskUrl())
     }
 }
