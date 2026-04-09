@@ -9,6 +9,7 @@ import com.example.arcomtechapp.data.models.FieldDeskSession
 import com.example.arcomtechapp.data.repo.BlueFolderFieldOpsRepository
 import com.example.arcomtechapp.data.repo.FieldOpsRepository
 import com.example.arcomtechapp.data.models.Job
+import com.example.arcomtechapp.workflow.JobWorkflow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -44,10 +45,11 @@ class TechnicianDashboardViewModel(
                 _connectionStatus.postValue(repo.checkConnection(session.baseUrl, session.apiKey))
 
                 val jobs = repo.getTodayJobs(session.baseUrl, session.apiKey, session.technicianId)
+                val orderedJobs = JobWorkflow.sortForTechnicianFlow(jobs)
                 val completed = jobs.count { it.status.equals("completed", ignoreCase = true) }
                 val pending = jobs.size - completed
 
-                _todayJobs.postValue(jobs)
+                _todayJobs.postValue(orderedJobs)
                 _summary.postValue(DashboardSummary(completed = completed, pending = pending))
                 _error.postValue(null)
             } catch (e: Exception) {

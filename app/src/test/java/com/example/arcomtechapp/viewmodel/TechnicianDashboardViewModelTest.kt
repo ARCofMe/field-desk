@@ -34,9 +34,9 @@ class TechnicianDashboardViewModelTest {
     fun `loadDashboard posts jobs and summary`() {
         val repo = mockk<FieldOpsRepository>()
         val jobs = listOf(
-            Job(id = "1", address = "A", appointmentWindow = "8-10", customerName = "Cust1", customerPhone = "555", status = "Completed", distanceMiles = 1.0),
+            Job(id = "3", address = "C", appointmentWindow = "1-3", customerName = "Cust3", customerPhone = "555", status = "pending", distanceMiles = 3.0),
             Job(id = "2", address = "B", appointmentWindow = "10-12", customerName = "Cust2", customerPhone = "555", status = "Pending", distanceMiles = 2.0),
-            Job(id = "3", address = "C", appointmentWindow = "1-3", customerName = "Cust3", customerPhone = "555", status = "pending", distanceMiles = 3.0)
+            Job(id = "1", address = "A", appointmentWindow = "8-10", customerName = "Cust1", customerPhone = "555", status = "Completed", distanceMiles = 1.0)
         )
         every { repo.testPython() } returns ""
         every { repo.getAssignmentsForUser(any()) } returns emptyList()
@@ -53,6 +53,7 @@ class TechnicianDashboardViewModelTest {
 
         val emitted = viewModel.todayJobs.getOrAwaitValue(time = 5)
         assertEquals(3, emitted.size)
+        assertEquals(listOf("1", "2", "3"), emitted.map { it.id })
         val summary = viewModel.summary.getOrAwaitValue(time = 5)
         assertEquals(1, summary.completed)
         assertEquals(2, summary.pending)
