@@ -102,7 +102,7 @@ class JobWorkflowViewModel(
                 if (result.success) {
                     "Photo attached to SR. Capture the next required shot when ready."
                 } else {
-                    "Photo was not attached. Keep this screen open and retry before leaving the stop."
+                    result.message.ifBlank { "Photo was not attached. Keep this screen open and retry before leaving the stop." }
                 }
             )
             refreshPhotoStatus(job)

@@ -2,6 +2,7 @@ package com.example.arcomtechapp.workflow
 
 import com.example.arcomtechapp.data.models.Job
 import java.util.Locale
+import java.util.regex.Pattern
 
 data class WorkflowChecklistItem(
     val label: String,
@@ -158,7 +159,7 @@ object JobWorkflow {
 
     fun sortForTechnicianFlow(jobs: List<Job>): List<Job> {
         return jobs.sortedWith(
-            compareBy<Job> { appointmentBucket(it.appointmentWindow) }
+            compareBy<Job> { appointmentStartSortKey(it.appointmentWindow) }
                 .thenBy { summarize(it).priorityScore }
                 .thenBy { it.customerName.lowercase(Locale.getDefault()) }
         )
@@ -169,12 +170,28 @@ object JobWorkflow {
         return ordered.firstOrNull { !it.status.contains("complete", ignoreCase = true) } ?: ordered.firstOrNull()
     }
 
-    private fun appointmentBucket(window: String?): Int {
+    private fun appointmentStartSortKey(window: String?): Int {
         val normalized = window.orEmpty().lowercase(Locale.getDefault())
+        parseWindowStartHour(normalized)?.let { return it }
         return when {
-            "am" in normalized -> 0
-            "pm" in normalized -> 2
-            else -> 1
+            "am" in normalized -> 8
+            "pm" in normalized -> 13
+            "unscheduled" in normalized || normalized.isBlank() -> 99
+            else -> 50
         }
     }
+
+    private fun parseWindowStartHour(window: String): Int? {
+        val match = WINDOW_START_PATTERN.matcher(window)
+        if (!match.find()) return null
+        val rawHour = match.group(1)?.toIntOrNull() ?: return null
+        val meridiem = match.group(2)?.lowercase(Locale.getDefault())
+        var hour = rawHour
+        if (meridiem == "pm" && hour < 12) hour += 12
+        if (meridiem == "am" && hour == 12) hour = 0
+        if (meridiem == null && hour in 1..6) hour += 12
+        return hour
+    }
+
+    private val WINDOW_START_PATTERN = Pattern.compile("(\\d{1,2})(?:[:.]\\d{2})?\\s*(am|pm)?")
 }

@@ -100,4 +100,35 @@ class JobWorkflowViewModelTest {
         )
         verify { repo.uploadJobPhoto("https://ops.example.test", "token", "100", request) }
     }
+
+    @Test
+    fun `uploadPhoto surfaces backend failure message`() {
+        val repo = mockk<FieldOpsRepository>(relaxed = true)
+        val localRepo = mockk<LocalWorkflowStateRepository>(relaxed = true)
+        every { repo.uploadJobPhoto(any(), any(), any(), any()) } returns
+            TechnicianActionResult(false, "Direct BlueFolder photo upload handoff is not wired in the app yet")
+        every { repo.getJobPhotoStatus(any(), any(), any()) } returns null
+        every { localRepo.getJobWorkflowState("100") } returns com.example.arcomtechapp.data.models.JobWorkflowState(
+            jobId = "100",
+            noteDraft = null,
+            notePendingSync = false,
+            noteLastSyncMessage = null,
+            photoCount = 1,
+            lastPhotoLabel = "Overview",
+            finalOutcome = null,
+            finalOutcomeNote = null,
+            workStartedAtEpochMillis = null,
+            lastAction = "Direct BlueFolder photo upload handoff is not wired in the app yet",
+            lastActionJobId = "100"
+        )
+
+        val request = PhotoUploadRequest("a.jpg", "image/jpeg", byteArrayOf(1, 2, 3), "Overview")
+        val viewModel = JobWorkflowViewModel(repo, localRepo) { session() }
+        viewModel.uploadPhoto(job(), request)
+
+        assertEquals(
+            "Direct BlueFolder photo upload handoff is not wired in the app yet",
+            viewModel.actionMessage.getOrAwaitValue(ignoreNulls = true)
+        )
+    }
 }

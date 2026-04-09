@@ -257,13 +257,16 @@ class PhotosFragment : Fragment() {
     private fun updateUploadControls() {
         val hasPendingUpload = pendingUpload != null
         val hasJob = job != null
-        binding.buttonEmailUpload.isEnabled = hasPendingUpload && hasJob
-        binding.buttonEmailUpload.text = if (hasPendingUpload) {
+        val canAttachPhoto = storage.getBackendMode() == Storage.BackendMode.OPS_HUB
+        binding.buttonEmailUpload.isEnabled = hasPendingUpload && hasJob && canAttachPhoto
+        binding.buttonEmailUpload.text = if (!canAttachPhoto) {
+            "Photo attach requires Ops Hub backend"
+        } else if (hasPendingUpload) {
             "Attach ${selectedPhotoLabel()} to SR"
         } else {
             "Attach photo to SR"
         }
-        if (!hasJob) {
+        if (!hasJob || !canAttachPhoto) {
             binding.buttonEmailUpload.isEnabled = false
         }
     }

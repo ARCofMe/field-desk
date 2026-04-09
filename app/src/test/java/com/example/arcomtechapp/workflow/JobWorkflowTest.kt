@@ -87,6 +87,19 @@ class JobWorkflowTest {
         assertTrue(summary.nextStep.contains("customer-side follow-up"))
     }
 
+    @Test
+    fun sortForTechnicianFlow_orders_by_service_window_start_time() {
+        val ordered = JobWorkflow.sortForTechnicianFlow(
+            listOf(
+                job("3", "Pending").copy(appointmentWindow = "1-3"),
+                job("1", "Pending").copy(appointmentWindow = "8-10"),
+                job("2", "Pending").copy(appointmentWindow = "10-12"),
+            )
+        )
+
+        assertEquals(listOf("1", "2", "3"), ordered.map { it.id })
+    }
+
     private fun job(id: String, status: String): Job {
         return Job(
             id = id,
