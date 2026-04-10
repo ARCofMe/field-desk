@@ -77,15 +77,18 @@ class TodayFragment : Fragment() {
         val ordered = JobWorkflow.sortForTechnicianFlow(jobs)
         val active = JobWorkflow.activeJob(ordered)
         val workflowStateRepo = requireContext().fieldDeskContainer().localWorkflowStateRepository()
+        val openJobs = ordered.filter { !JobWorkflow.isComplete(it) }
 
         binding.textTodaySummary.text = if (ordered.isEmpty()) {
             getString(R.string.fielddesk_empty_today_summary)
         } else {
-            resources.getQuantityString(R.plurals.fielddesk_loaded_jobs_summary, ordered.size, ordered.size)
+            val loaded = resources.getQuantityString(R.plurals.fielddesk_loaded_jobs_summary, ordered.size, ordered.size)
+            val remaining = resources.getQuantityString(R.plurals.fielddesk_remaining_jobs_summary, openJobs.size, openJobs.size)
+            "$loaded $remaining"
         }
         binding.textQueueCount.text = ordered.size.toString()
-        binding.textQueueComplete.text = ordered.count { it.status.contains("complete", ignoreCase = true) }.toString()
-        binding.textQueuePending.text = ordered.count { !it.status.contains("complete", ignoreCase = true) }.toString()
+        binding.textQueueComplete.text = ordered.count { JobWorkflow.isComplete(it) }.toString()
+        binding.textQueuePending.text = openJobs.size.toString()
 
         if (active == null) {
             binding.cardActiveJob.visibility = GONE
@@ -97,13 +100,15 @@ class TodayFragment : Fragment() {
         val summary = JobWorkflow.summarize(active)
         val workflowState = workflowStateRepo.getJobWorkflowState(active.id)
         val closeout = JobExecutionAssist.completionSummary(active, workflowState.asJobProgress())
-        binding.textActiveEyebrow.text = summary.headline
+        val activeIndex = ordered.indexOfFirst { it.id == active.id }.takeIf { it >= 0 } ?: 0
+        binding.textActiveEyebrow.text = getString(R.string.fielddesk_active_job_progress, activeIndex + 1, ordered.size)
         binding.textActiveTitle.text = buildString {
             append("#${active.id}")
             if (active.customerName.isNotBlank()) append(" • ${active.customerName}")
         }
         binding.textActiveMeta.text = listOf(
             active.appointmentWindow,
+            summary.headline,
             summary.statusLabel,
             active.statusMeta?.categoryLabel
         ).filterNotNull()

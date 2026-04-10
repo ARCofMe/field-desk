@@ -8,16 +8,16 @@ import org.junit.Test
 
 class JobWorkflowTest {
     @Test
-    fun activeJob_prefers_onsite_over_pending_and_completed() {
+    fun activeJob_prefers_the_earliest_incomplete_stop_in_window_order() {
         val jobs = listOf(
-            job("1", "Completed"),
-            job("2", "Pending"),
-            job("3", "Started")
+            job("1", "Completed").copy(appointmentWindow = "8-10"),
+            job("2", "Pending").copy(appointmentWindow = "10-12"),
+            job("3", "Started").copy(appointmentWindow = "1-3")
         )
 
         val active = JobWorkflow.activeJob(jobs)
 
-        assertEquals("3", active?.id)
+        assertEquals("2", active?.id)
     }
 
     @Test
@@ -129,12 +129,24 @@ class JobWorkflowTest {
     }
 
     @Test
-    fun activeJob_keeps_the_earliest_service_window_as_the_default_stop() {
+    fun activeJob_skips_completed_stops_and_keeps_the_earliest_open_window_as_default() {
         val active = JobWorkflow.activeJob(
             listOf(
                 job("pm", "Pending").copy(appointmentWindow = "1-3"),
                 job("am", "Completed").copy(appointmentWindow = "8-10"),
                 job("mid", "Pending").copy(appointmentWindow = "10-12"),
+            )
+        )
+
+        assertEquals("mid", active?.id)
+    }
+
+    @Test
+    fun activeJob_falls_back_to_the_first_stop_when_everything_is_complete() {
+        val active = JobWorkflow.activeJob(
+            listOf(
+                job("am", "Completed").copy(appointmentWindow = "8-10"),
+                job("pm", "Completed").copy(appointmentWindow = "1-3"),
             )
         )
 

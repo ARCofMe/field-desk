@@ -18,11 +18,17 @@
         <item quantity="one">1 job loaded. Push the next action forward before opening the full queue.</item>
         <item quantity="other">%d jobs loaded. Push the next action forward before opening the full queue.</item>
     </plurals>
+    <plurals name="fielddesk_remaining_jobs_summary">
+        <item quantity="one">1 remaining stop is still open.</item>
+        <item quantity="other">%d remaining stops are still open.</item>
+    </plurals>
     <string name="fielddesk_focus_bar_title">Field launch bar</string>
     <string name="fielddesk_focus_bar_summary">Photos, notes, and setup should stay one tap away while you work the current stop.</string>
     <string name="fielddesk_queue_label">Queue</string>
-    <string name="fielddesk_done_pending_label">Done&#10;Pending</string>
+    <string name="fielddesk_done_label">Done</string>
+    <string name="fielddesk_pending_label">Pending</string>
     <string name="fielddesk_active_job_eyebrow">Priority stop</string>
+    <string name="fielddesk_active_job_progress">Stop %1$d of %2$d</string>
     <string name="fielddesk_open_job_workflow">Open full job workflow</string>
     <string name="fielddesk_open_queue">Open full queue</string>
     <string name="fielddesk_queue_title">Queue</string>
