@@ -91,10 +91,39 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            app:cardElevation="6dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/fielddesk_queue_label"
+                    android:textColor="@color/brand_subtle_text" />
+
+                <TextView
+                    android:id="@+id/text_queue_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/brand_text"
+                    android:textSize="26sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:orientation="horizontal">
 
             <com.google.android.material.card.MaterialCardView
@@ -112,16 +141,16 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/fielddesk_queue_label"
+                        android:text="Done"
                         android:textColor="@color/brand_subtle_text" />
 
                     <TextView
-                        android:id="@+id/text_queue_count"
+                        android:id="@+id/text_queue_complete"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0"
-                        android:textColor="@color/brand_text"
-                        android:textSize="26sp"
+                        android:textColor="@color/brand_success"
+                        android:textSize="22sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -142,17 +171,8 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/fielddesk_done_pending_label"
+                        android:text="Pending"
                         android:textColor="@color/brand_subtle_text" />
-
-                    <TextView
-                        android:id="@+id/text_queue_complete"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textColor="@color/brand_success"
-                        android:textSize="22sp"
-                        android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/text_queue_pending"
