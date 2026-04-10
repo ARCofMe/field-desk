@@ -156,10 +156,10 @@ class NotesFragment : Fragment() {
         } else {
             buildString {
                 append("Draft saved (${draft.length} chars)")
-                if (state?.notePendingSync == true) {
+                if (state.notePendingSync) {
                     append("\nPending sync to Ops Hub")
-                } else if (!state?.noteLastSyncMessage.isNullOrBlank()) {
-                    append("\nLast sync: ${state?.noteLastSyncMessage}")
+                } else if (!state.noteLastSyncMessage.isNullOrBlank()) {
+                    append("\nLast sync: ${state.noteLastSyncMessage}")
                 }
                 closeout?.let {
                     append("\n${it.headline}")

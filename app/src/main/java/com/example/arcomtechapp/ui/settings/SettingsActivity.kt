@@ -68,7 +68,7 @@ class SettingsActivity : AppCompatActivity() {
             testConnection()
         }
 
-        binding.toggleTheme.addOnButtonCheckedListener { _, checkedId, isChecked ->
+        binding.toggleTheme.addOnButtonCheckedListener { _, _, isChecked ->
             if (!isChecked || suppressThemeToggle) return@addOnButtonCheckedListener
             binding.textTestResult.text = "Theme selection changed. Tap Save settings, then relaunch the app."
         }
