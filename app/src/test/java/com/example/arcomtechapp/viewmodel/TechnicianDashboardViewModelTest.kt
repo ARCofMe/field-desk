@@ -10,6 +10,7 @@ import com.example.arcomtechapp.util.getOrAwaitValue
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -57,6 +58,8 @@ class TechnicianDashboardViewModelTest {
         val summary = viewModel.summary.getOrAwaitValue(time = 5)
         assertEquals(1, summary.completed)
         assertEquals(2, summary.pending)
+        val lastLoadedAt = viewModel.lastLoadedAt.getOrAwaitValue(time = 5)
+        assertNotNull(lastLoadedAt)
     }
 
     @Test

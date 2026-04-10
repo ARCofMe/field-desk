@@ -31,6 +31,9 @@ class TechnicianDashboardViewModel(
     private val _connectionStatus = MutableLiveData<String>()
     val connectionStatus: LiveData<String> = _connectionStatus
 
+    private val _lastLoadedAt = MutableLiveData<Long?>()
+    val lastLoadedAt: LiveData<Long?> = _lastLoadedAt
+
     private val _loading = MutableLiveData<Boolean>()
     val loading: LiveData<Boolean> = _loading
 
@@ -51,6 +54,7 @@ class TechnicianDashboardViewModel(
 
                 _todayJobs.postValue(orderedJobs)
                 _summary.postValue(DashboardSummary(completed = completed, pending = pending))
+                _lastLoadedAt.postValue(System.currentTimeMillis())
                 _error.postValue(null)
             } catch (e: Exception) {
                 _error.postValue(formatError(e.message))

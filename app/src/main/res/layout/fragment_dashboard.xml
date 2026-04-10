@@ -21,6 +21,15 @@
             android:text="Connection status"
             android:textSize="14sp" />
 
+        <TextView
+            android:id="@+id/text_last_refresh"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/fielddesk_dashboard_last_refresh_empty"
+            android:textColor="@color/brand_subtle_text"
+            android:textSize="13sp" />
+
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
         android:layout_height="wrap_content"

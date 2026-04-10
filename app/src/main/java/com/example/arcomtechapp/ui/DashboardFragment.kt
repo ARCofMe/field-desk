@@ -19,6 +19,8 @@ import com.example.arcomtechapp.util.WorkspaceLinks
 import com.example.arcomtechapp.workflow.JobWorkflow
 import com.example.arcomtechapp.viewmodel.SelectedJobViewModel
 import com.example.arcomtechapp.viewmodel.TechnicianDashboardViewModel
+import java.text.DateFormat
+import java.util.Date
 
 class DashboardFragment : Fragment() {
 
@@ -127,6 +129,15 @@ class DashboardFragment : Fragment() {
         viewModel.connectionStatus.observe(viewLifecycleOwner) { status ->
             if (!status.isNullOrBlank()) {
                 binding.textConnection.text = status
+            }
+        }
+
+        viewModel.lastLoadedAt.observe(viewLifecycleOwner) { timestamp ->
+            binding.textLastRefresh.text = if (timestamp == null) {
+                getString(R.string.fielddesk_dashboard_last_refresh_empty)
+            } else {
+                val formatted = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(timestamp))
+                getString(R.string.fielddesk_dashboard_last_refresh, formatted)
             }
         }
     }
