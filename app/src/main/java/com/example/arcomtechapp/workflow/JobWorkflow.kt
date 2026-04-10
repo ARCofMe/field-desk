@@ -172,26 +172,64 @@ object JobWorkflow {
 
     private fun appointmentStartSortKey(window: String?): Int {
         val normalized = window.orEmpty().lowercase(Locale.getDefault())
-        parseWindowStartHour(normalized)?.let { return it }
+        parseWindowStartMinutes(normalized)?.let { return it }
         return when {
-            "am" in normalized -> 8
-            "pm" in normalized -> 13
-            "unscheduled" in normalized || normalized.isBlank() -> 99
-            else -> 50
+            "midnight" in normalized -> 0
+            "am" in normalized -> 8 * 60
+            "noon" in normalized -> 12 * 60
+            "pm" in normalized -> 13 * 60
+            "unscheduled" in normalized || normalized.isBlank() -> 99 * 60
+            else -> 50 * 60
         }
     }
 
-    private fun parseWindowStartHour(window: String): Int? {
-        val match = WINDOW_START_PATTERN.matcher(window)
-        if (!match.find()) return null
-        val rawHour = match.group(1)?.toIntOrNull() ?: return null
-        val meridiem = match.group(2)?.lowercase(Locale.getDefault())
-        var hour = rawHour
-        if (meridiem == "pm" && hour < 12) hour += 12
-        if (meridiem == "am" && hour == 12) hour = 0
-        if (meridiem == null && hour in 1..6) hour += 12
-        return hour
+    private fun parseWindowStartMinutes(window: String): Int? {
+        val lower = window.lowercase(Locale.getDefault())
+        if ("midnight" in lower) return 0
+        if ("noon" in lower) return 12 * 60
+
+        val matches = mutableListOf<TimeToken>()
+        val matcher = WINDOW_TIME_PATTERN.matcher(lower)
+        while (matcher.find()) {
+            val rawHour = matcher.group(1)?.toIntOrNull() ?: continue
+            val minute = matcher.group(2)?.toIntOrNull() ?: 0
+            val meridiem = matcher.group(3)?.lowercase(Locale.getDefault())
+            matches += TimeToken(rawHour = rawHour, minute = minute, meridiem = meridiem)
+        }
+        if (matches.isEmpty()) return null
+
+        val first = matches.first()
+        val inferredMeridiem = first.meridiem ?: inferLeadingMeridiem(first, matches.drop(1))
+        return normalizeToMinutes(first.rawHour, first.minute, inferredMeridiem)
     }
 
-    private val WINDOW_START_PATTERN = Pattern.compile("(\\d{1,2})(?:[:.]\\d{2})?\\s*(am|pm)?")
+    private fun inferLeadingMeridiem(first: TimeToken, trailing: List<TimeToken>): String? {
+        val nextWithMeridiem = trailing.firstOrNull { it.meridiem != null } ?: return null
+        if (first.rawHour == 12) {
+            return nextWithMeridiem.meridiem
+        }
+        return when (nextWithMeridiem.meridiem) {
+            "pm" -> if (first.rawHour > nextWithMeridiem.rawHour && nextWithMeridiem.rawHour != 12) "am" else "pm"
+            "am" -> if (first.rawHour > nextWithMeridiem.rawHour && nextWithMeridiem.rawHour != 12) "pm" else "am"
+            else -> null
+        }
+    }
+
+    private fun normalizeToMinutes(hour: Int, minute: Int, meridiem: String?): Int {
+        var normalizedHour = hour
+        when (meridiem) {
+            "pm" -> if (normalizedHour < 12) normalizedHour += 12
+            "am" -> if (normalizedHour == 12) normalizedHour = 0
+            null -> if (normalizedHour in 1..6) normalizedHour += 12
+        }
+        return (normalizedHour * 60) + minute
+    }
+
+    private data class TimeToken(
+        val rawHour: Int,
+        val minute: Int,
+        val meridiem: String?
+    )
+
+    private val WINDOW_TIME_PATTERN = Pattern.compile("(\\d{1,2})(?:[:.](\\d{2}))?\\s*(am|pm)?")
 }

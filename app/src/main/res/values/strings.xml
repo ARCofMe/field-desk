@@ -49,6 +49,9 @@
     <string name="fielddesk_workspace_invalid_url">Only valid http or https workspace URLs can be opened. Bare domains are accepted and normalized.</string>
     <string name="fielddesk_save_route_preferences">Save workspace preferences</string>
     <string name="fielddesk_settings_saved">Workspace preferences saved</string>
+    <string name="fielddesk_dashboard_next_stop_title">Next stop</string>
+    <string name="fielddesk_dashboard_next_stop_empty">No next stop is ready yet.</string>
+    <string name="fielddesk_dashboard_open_next_stop">Open next stop</string>
     <string name="fielddesk_action_photos">Photos</string>
     <string name="fielddesk_action_notes">Notes</string>
     <string name="fielddesk_action_setup">Setup</string>

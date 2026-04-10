@@ -100,6 +100,34 @@ class JobWorkflowTest {
         assertEquals(listOf("1", "2", "3"), ordered.map { it.id })
     }
 
+    @Test
+    fun sortForTechnicianFlow_handles_minutes_noon_and_trailing_meridiem() {
+        val ordered = JobWorkflow.sortForTechnicianFlow(
+            listOf(
+                job("5", "Pending").copy(appointmentWindow = "Unscheduled"),
+                job("4", "Pending").copy(appointmentWindow = "7-9 PM"),
+                job("3", "Pending").copy(appointmentWindow = "1-3 PM"),
+                job("2", "Pending").copy(appointmentWindow = "Noon-2"),
+                job("1", "Pending").copy(appointmentWindow = "8:30-10:00"),
+            )
+        )
+
+        assertEquals(listOf("1", "2", "3", "4", "5"), ordered.map { it.id })
+    }
+
+    @Test
+    fun sortForTechnicianFlow_handles_ranges_that_cross_noon() {
+        val ordered = JobWorkflow.sortForTechnicianFlow(
+            listOf(
+                job("3", "Pending").copy(appointmentWindow = "12-2 PM"),
+                job("2", "Pending").copy(appointmentWindow = "11-1 PM"),
+                job("1", "Pending").copy(appointmentWindow = "10-12"),
+            )
+        )
+
+        assertEquals(listOf("1", "2", "3"), ordered.map { it.id })
+    }
+
     private fun job(id: String, status: String): Job {
         return Job(
             id = id,

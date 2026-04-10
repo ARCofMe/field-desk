@@ -13,8 +13,10 @@ import androidx.fragment.app.viewModels
 import com.example.arcomtechapp.R
 import com.example.arcomtechapp.databinding.FragmentDashboardBinding
 import com.example.arcomtechapp.runtime.fieldDeskContainer
+import com.example.arcomtechapp.data.models.Job
 import com.example.arcomtechapp.storage.Storage
 import com.example.arcomtechapp.util.WorkspaceLinks
+import com.example.arcomtechapp.workflow.JobWorkflow
 import com.example.arcomtechapp.viewmodel.SelectedJobViewModel
 import com.example.arcomtechapp.viewmodel.TechnicianDashboardViewModel
 
@@ -28,6 +30,7 @@ class DashboardFragment : Fragment() {
     }
     private lateinit var storage: Storage
     private lateinit var adapter: JobAdapter
+    private var nextStopJob: Job? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -57,6 +60,11 @@ class DashboardFragment : Fragment() {
             updateConnectionBanner()
         }
         binding.buttonOptimizeRoute.setOnClickListener { launchOptimizedRoute() }
+        binding.buttonOpenNextStop.setOnClickListener {
+            val nextJob = nextStopJob ?: return@setOnClickListener
+            selectedJobViewModel.select(nextJob)
+            fieldDeskNavigator().openJobDetail()
+        }
         binding.buttonOpenRouteDesk.setOnClickListener {
             openConfiguredWorkspace(
                 url = storage.getRouteDeskUrl(),
@@ -97,6 +105,7 @@ class DashboardFragment : Fragment() {
             if (jobs.isEmpty()) {
                 binding.textTodayState.text = getString(R.string.no_jobs_available)
             }
+            updateNextStopCard(jobs)
         }
 
         viewModel.summary.observe(viewLifecycleOwner) { summary ->
@@ -179,6 +188,29 @@ class DashboardFragment : Fragment() {
         binding.buttonOpenOpsHub.alpha = if (opsHubUrl != null) 1f else 0.55f
         binding.buttonOpenRouteDesk.alpha = if (routeDeskUrl != null) 1f else 0.55f
         binding.buttonOpenPartsDesk.alpha = if (partsDeskUrl != null) 1f else 0.55f
+    }
+
+    private fun updateNextStopCard(jobs: List<Job>) {
+        val nextJob = JobWorkflow.activeJob(jobs)
+        nextStopJob = nextJob
+        if (nextJob == null) {
+            binding.textNextStopTitle.text = getString(R.string.fielddesk_dashboard_next_stop_empty)
+            binding.textNextStopMeta.visibility = View.GONE
+            binding.textNextStopAddress.visibility = View.GONE
+            binding.buttonOpenNextStop.isEnabled = false
+            binding.buttonOpenNextStop.alpha = 0.55f
+            return
+        }
+
+        binding.textNextStopTitle.text = nextJob.customerName.ifBlank { "Service Request ${nextJob.id}" }
+        binding.textNextStopMeta.text = listOf(nextJob.appointmentWindow, nextJob.status)
+            .filter { it.isNotBlank() }
+            .joinToString(" • ")
+        binding.textNextStopMeta.visibility = View.VISIBLE
+        binding.textNextStopAddress.text = nextJob.address
+        binding.textNextStopAddress.visibility = View.VISIBLE
+        binding.buttonOpenNextStop.isEnabled = true
+        binding.buttonOpenNextStop.alpha = 1f
     }
 
     private fun openConfiguredWorkspace(url: String?, missingMessage: String, invalidMessage: String) {
