@@ -104,7 +104,7 @@ What to show:
 
 - all stops for the selected date range
 - the selected date type
-- route optimization launch
+- Google Maps route launch
 
 Routing behavior:
 

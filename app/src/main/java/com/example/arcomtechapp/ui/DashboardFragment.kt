@@ -165,7 +165,9 @@ class DashboardFragment : Fragment() {
     }
 
     private fun launchOptimizedRoute() {
-        val jobs = viewModel.todayJobs.value.orEmpty().filter { it.address.isNotBlank() }
+        val jobs = JobWorkflow.sortForTechnicianFlow(viewModel.todayJobs.value.orEmpty()).filter {
+            it.address.isNotBlank() && !it.address.equals("Address not provided", ignoreCase = true)
+        }
         if (jobs.isEmpty()) {
             Toast.makeText(requireContext(), "No jobs with addresses to route", Toast.LENGTH_SHORT).show()
             return

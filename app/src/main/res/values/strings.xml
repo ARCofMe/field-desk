@@ -35,8 +35,8 @@
     <string name="fielddesk_queue_intro">Use the queue when you need the full day, routing context, or a manual stop pick instead of the default next action.</string>
     <string name="fielddesk_date_type">Date type:</string>
     <string name="fielddesk_refresh_queue">Refresh queue</string>
-    <string name="fielddesk_optimize_route">Optimize route for listed jobs</string>
-    <string name="fielddesk_optimize_route_in_google_maps">Optimize route in Google Maps</string>
+    <string name="fielddesk_optimize_route">Open listed route in Google Maps</string>
+    <string name="fielddesk_optimize_route_in_google_maps">Open route in Google Maps</string>
     <string name="fielddesk_guided_workflow">Guided workflow</string>
     <string name="fielddesk_field_exceptions">Field exceptions</string>
     <string name="fielddesk_customer_context">Customer context</string>
