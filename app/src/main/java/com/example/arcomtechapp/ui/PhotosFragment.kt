@@ -86,6 +86,7 @@ class PhotosFragment : Fragment() {
                 updatePhotoPromptState()
                 renderProgress()
                 workflowViewModel.load(selectedJob)
+                updateJobBoundState()
             }
         }
 
@@ -118,9 +119,11 @@ class PhotosFragment : Fragment() {
         binding.textPhotoJob.text = buildJobHeader()
         updatePhotoPromptState()
         renderProgress()
+        updateJobBoundState()
         updateStatus("Ready for guided photo capture")
         job = selectedJobViewModel.currentJob()
         job?.let { workflowViewModel.load(it) }
+        updateJobBoundState()
     }
 
     private fun observeWorkflowState() {
@@ -145,6 +148,10 @@ class PhotosFragment : Fragment() {
 
     private fun buildConfigText(): String {
         val parts = mutableListOf<String>()
+        parts += when (storage.getBackendMode()) {
+            Storage.BackendMode.OPS_HUB -> "Ops Hub backend"
+            Storage.BackendMode.BLUEFOLDER_DIRECT -> "BlueFolder direct"
+        }
         parts += storage.getActiveBaseUrl()?.ifBlank { "No backend URL" } ?: "No backend URL"
         parts += if (storage.getActiveApiKey().isNullOrBlank()) "API key missing" else "API key set"
         parts += if (workflowViewModel.isAutoCompressEnabled()) "Auto-compress ON" else "Auto-compress OFF"
@@ -152,7 +159,7 @@ class PhotosFragment : Fragment() {
     }
 
     private fun buildJobHeader(): String {
-        val currentJob = job ?: return "General photo workflow"
+        val currentJob = job ?: return getString(com.example.arcomtechapp.R.string.fielddesk_workflow_no_stop_selected)
         return buildString {
             append("Job #${currentJob.id}")
             if (currentJob.customerName.isNotBlank()) append(" • ${currentJob.customerName}")
@@ -227,6 +234,7 @@ class PhotosFragment : Fragment() {
         }
         binding.textPhotoCompliance.text = buildPhotoComplianceText()
         updateUploadControls()
+        updateJobBoundState()
     }
 
     private fun updateStatus(status: String) {
@@ -235,6 +243,9 @@ class PhotosFragment : Fragment() {
     }
 
     private fun buildPhotoComplianceText(): String {
+        if (job == null) {
+            return getString(com.example.arcomtechapp.R.string.fielddesk_workflow_choose_stop_guidance)
+        }
         val status = livePhotoStatus ?: return "Compliance state will appear here after Ops Hub responds."
         return buildString {
             append(status.message.ifBlank { "Mailbox status: ${status.mailboxStatus}" })
@@ -267,6 +278,22 @@ class PhotosFragment : Fragment() {
             "Attach photo to SR"
         }
         if (!hasJob || !canAttachPhoto) {
+            binding.buttonEmailUpload.isEnabled = false
+        }
+    }
+
+    private fun updateJobBoundState() {
+        val hasJob = job != null
+        binding.buttonPhotoTypeOne.isEnabled = hasJob
+        binding.buttonPhotoTypeTwo.isEnabled = hasJob
+        binding.buttonPhotoTypeThree.isEnabled = hasJob
+        binding.buttonCamera.isEnabled = hasJob
+        binding.buttonGallery.isEnabled = hasJob
+        binding.buttonOptimize.isEnabled = hasJob
+        if (!hasJob) {
+            binding.textPhotoJob.text = getString(com.example.arcomtechapp.R.string.fielddesk_workflow_no_stop_selected)
+            binding.textPhotoPrompt.text = getString(com.example.arcomtechapp.R.string.fielddesk_workflow_choose_stop_guidance)
+            binding.textPhotoStatus.text = getString(com.example.arcomtechapp.R.string.fielddesk_workflow_choose_stop_guidance)
             binding.buttonEmailUpload.isEnabled = false
         }
     }

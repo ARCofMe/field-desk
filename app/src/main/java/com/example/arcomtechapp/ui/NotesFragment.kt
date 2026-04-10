@@ -53,10 +53,12 @@ class NotesFragment : Fragment() {
                 binding.textNotesMeta.text = buildMeta()
                 applyTemplateLabels()
                 workflowViewModel.load(selectedJob)
+                updateJobBoundState()
             }
         }
         job = selectedJobViewModel.currentJob()
         job?.let { workflowViewModel.load(it) }
+        updateJobBoundState()
         binding.inputNote.doAfterTextChanged { text ->
             if (suppressDraftWatcher) return@doAfterTextChanged
             job?.let { workflowViewModel.onNoteDraftChanged(it, text?.toString()) }
@@ -102,6 +104,7 @@ class NotesFragment : Fragment() {
             suppressDraftWatcher = false
             updateDraftStatus(state)
             binding.textNoteGuidance.text = buildNoteGuidance(state)
+            updateJobBoundState()
         }
         workflowViewModel.actionMessage.observe(viewLifecycleOwner) { message ->
             if (!message.isNullOrBlank()) {
@@ -113,6 +116,14 @@ class NotesFragment : Fragment() {
 
     private fun buildMeta(): String {
         val parts = mutableListOf<String>()
+        if (job == null) {
+            parts += getString(com.example.arcomtechapp.R.string.fielddesk_workflow_no_stop_selected)
+            parts += when (storage.getBackendMode()) {
+                Storage.BackendMode.OPS_HUB -> "Ops Hub backend"
+                Storage.BackendMode.BLUEFOLDER_DIRECT -> "BlueFolder direct"
+            }
+            return parts.joinToString(" • ")
+        }
         job?.let {
             parts += "Job #${it.id}"
             if (it.customerName.isNotBlank()) parts += it.customerName
@@ -132,6 +143,10 @@ class NotesFragment : Fragment() {
     }
 
     private fun updateDraftStatus(state: com.example.arcomtechapp.data.models.JobWorkflowState?) {
+        if (job == null) {
+            binding.textDraftStatus.text = getString(com.example.arcomtechapp.R.string.fielddesk_workflow_choose_stop_guidance)
+            return
+        }
         val draft = state?.noteDraft
         val closeout = job?.let {
             JobExecutionAssist.completionSummary(it, state?.asJobProgress() ?: com.example.arcomtechapp.workflow.JobProgress())
@@ -158,7 +173,7 @@ class NotesFragment : Fragment() {
     }
 
     private fun buildNoteGuidance(state: com.example.arcomtechapp.data.models.JobWorkflowState? = null): String {
-        val currentJob = job ?: return "Use the note blocks to capture the field story cleanly."
+        val currentJob = job ?: return getString(com.example.arcomtechapp.R.string.fielddesk_workflow_choose_stop_guidance)
         return JobExecutionAssist.noteGuidance(currentJob, state?.finalOutcome)
     }
 
@@ -195,6 +210,24 @@ class NotesFragment : Fragment() {
         binding.inputNote.setSelection(updated.length)
         binding.textNoteGuidance.text = buildNoteGuidance()
         updateDraftStatus(workflowViewModel.workflowState.value)
+    }
+
+    private fun updateJobBoundState() {
+        val hasJob = job != null
+        binding.textNotesMeta.text = buildMeta()
+        binding.textNoteGuidance.text = buildNoteGuidance(workflowViewModel.workflowState.value)
+        binding.inputNote.isEnabled = hasJob
+        binding.textTemplateOne.isEnabled = hasJob
+        binding.textTemplateTwo.isEnabled = hasJob
+        binding.textTemplateThree.isEnabled = hasJob
+        binding.textTemplateFour.isEnabled = hasJob
+        binding.buttonSaveDraft.isEnabled = hasJob
+        binding.buttonClearDraft.isEnabled = hasJob
+        binding.buttonSendNote.isEnabled = hasJob
+        if (!hasJob) {
+            binding.inputNote.setText("")
+            binding.textDraftStatus.text = getString(com.example.arcomtechapp.R.string.fielddesk_workflow_choose_stop_guidance)
+        }
     }
 
     override fun onDestroyView() {
