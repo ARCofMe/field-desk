@@ -47,6 +47,9 @@ class TodayFragment : Fragment() {
         binding.buttonOpenAllJobs.setOnClickListener {
             fieldDeskNavigator().openJobs()
         }
+        binding.buttonTodayRefresh.setOnClickListener {
+            viewModel.loadDashboard(requireContext().fieldDeskContainer().currentSession())
+        }
         binding.buttonTodayPhotos.setOnClickListener {
             fieldDeskNavigator().openPhotos()
         }
@@ -66,6 +69,7 @@ class TodayFragment : Fragment() {
         }
         viewModel.loading.observe(viewLifecycleOwner) { loading ->
             binding.progressToday.visibility = if (loading) VISIBLE else GONE
+            binding.buttonTodayRefresh.isEnabled = !loading
         }
         viewModel.error.observe(viewLifecycleOwner) { error ->
             binding.textTodayState.visibility = if (error.isNullOrBlank()) GONE else VISIBLE

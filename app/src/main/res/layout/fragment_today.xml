@@ -311,11 +311,30 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <Button
-            android:id="@+id/button_open_all_jobs"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="@string/fielddesk_open_queue" />
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/button_today_refresh"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:backgroundTint="@color/brand_surface_light"
+                android:text="@string/fielddesk_refresh_queue"
+                android:textColor="@color/brand_text" />
+
+            <Button
+                android:id="@+id/button_open_all_jobs"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:backgroundTint="@color/brand_primary"
+                android:text="@string/fielddesk_open_queue"
+                android:textColor="@color/brand_text" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>
