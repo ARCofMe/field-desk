@@ -75,22 +75,26 @@ This is the best “home” screen for the product story.
 What it shows:
 
 - loaded queue count
-- completed vs pending count
+- completed vs pending count in separate summary cards
+- stop position as `Stop X of Y`
 - active stop summary
 - next-step guidance
 - quick actions
+- a `Refresh queue` action for live data checks without leaving the screen
 
 How jobs are ordered:
 
 - jobs are now sorted by service-window start time first
 - examples: `8-10` before `10-12`, then `1-3`
 - this same order feeds the routing flow
+- the active stop prefers the earliest incomplete stop, not a completed early stop
 
 What to verify:
 
 - the active stop is the expected next stop
 - the appointment window sequence makes sense
 - the quick actions match the current job state
+- refresh does not reorder the day incorrectly
 
 ### 3. Queue
 
@@ -106,6 +110,7 @@ Routing behavior:
 
 - the queue is sorted through the same technician-flow ordering logic used by `Today`
 - route launch uses that ordering before handing stops to Google Maps
+- Google Maps route launch preserves the listed order instead of asking Maps to optimize the waypoints
 
 ### 4. Job Detail
 
@@ -206,6 +211,8 @@ Before presenting, verify these on the device:
 - `Settings` shows a valid backend configuration
 - `Today` loads jobs
 - job order matches expected service windows
+- `Today` highlights the earliest incomplete stop
+- `Refresh queue` works from `Today`
 - `Queue` route launch opens with the expected stop order
 - `Photos` can capture or select a photo
 - photo attach behavior matches the chosen backend mode
