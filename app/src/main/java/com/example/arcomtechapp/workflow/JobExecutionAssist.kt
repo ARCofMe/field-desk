@@ -27,7 +27,8 @@ data class JobCompletionSummary(
     val ready: Boolean,
     val headline: String,
     val blockers: List<String>,
-    val requiredPhotoLabels: List<String>
+    val requiredPhotoLabels: List<String>,
+    val readinessItems: List<WorkflowChecklistItem>
 )
 
 object JobExecutionAssist {
@@ -136,6 +137,17 @@ object JobExecutionAssist {
 
     fun completionSummary(job: Job, progress: JobProgress): JobCompletionSummary {
         val requiredPhotoLabels = photoPrompts(job).map { it.label }
+        val readinessItems = listOf(
+            WorkflowChecklistItem("Required photos captured", progress.photoCount > 0),
+            WorkflowChecklistItem("Structured note ready", progress.noteDraftLength >= 40),
+            WorkflowChecklistItem("Note synced to Ops Hub", !progress.notePendingSync && progress.noteDraftLength >= 40),
+            WorkflowChecklistItem("Final outcome chosen", !progress.finalOutcome.isNullOrBlank()),
+            WorkflowChecklistItem(
+                "Unable-to-complete reason captured",
+                !progress.finalOutcome.equals("unable_to_complete", ignoreCase = true) ||
+                    (progress.finalOutcomeNote?.length ?: 0) >= 20
+            )
+        )
         val blockers = mutableListOf<String>()
         if (progress.photoCount <= 0) {
             blockers += "Capture the required photo set: ${requiredPhotoLabels.joinToString(", ")}."
@@ -158,14 +170,16 @@ object JobExecutionAssist {
                 ready = true,
                 headline = "Ready for closeout",
                 blockers = emptyList(),
-                requiredPhotoLabels = requiredPhotoLabels
+                requiredPhotoLabels = requiredPhotoLabels,
+                readinessItems = readinessItems
             )
         } else {
             JobCompletionSummary(
                 ready = false,
                 headline = "Closeout still blocked",
                 blockers = blockers,
-                requiredPhotoLabels = requiredPhotoLabels
+                requiredPhotoLabels = requiredPhotoLabels,
+                readinessItems = readinessItems
             )
         }
     }

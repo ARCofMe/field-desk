@@ -26,6 +26,8 @@ class JobExecutionAssistTest {
         assertFalse(summary.ready)
         assertEquals("Closeout still blocked", summary.headline)
         assertEquals(3, summary.blockers.size)
+        assertTrue(summary.readinessItems.any { it.label == "Required photos captured" && !it.done })
+        assertTrue(summary.readinessItems.any { it.label == "Final outcome chosen" && !it.done })
     }
 
     @Test
@@ -43,6 +45,7 @@ class JobExecutionAssistTest {
 
         assertTrue(summary.ready)
         assertTrue(summary.blockers.isEmpty())
+        assertTrue(summary.readinessItems.all { it.done })
     }
 
     @Test
@@ -59,6 +62,7 @@ class JobExecutionAssistTest {
 
         assertFalse(summary.ready)
         assertTrue(summary.blockers.any { it.contains("could not be completed") })
+        assertTrue(summary.readinessItems.any { it.label == "Unable-to-complete reason captured" && !it.done })
     }
 
     @Test

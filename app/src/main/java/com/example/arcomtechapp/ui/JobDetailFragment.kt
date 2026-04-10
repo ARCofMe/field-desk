@@ -179,7 +179,12 @@ class JobDetailFragment : Fragment() {
             }
         }
         binding.textCloseoutStatus.text = buildString {
-            append("Outcome: ${workflowState.finalOutcome?.replace('_', ' ') ?: "not chosen"}")
+            append(if (closeout.ready) "Ready for signoff" else "Blocked by ${closeout.blockers.size} items")
+            append("\n")
+            append(closeout.readinessItems.joinToString("\n") { item ->
+                "${if (item.done) "•" else "○"} ${item.label}"
+            })
+            append("\nOutcome: ${workflowState.finalOutcome?.replace('_', ' ') ?: "not chosen"}")
             workflowState.finalOutcomeNote?.takeIf { it.isNotBlank() }?.let {
                 append("\nReason: $it")
             }
@@ -190,6 +195,7 @@ class JobDetailFragment : Fragment() {
                 append("\nRequired photos: ${closeout.requiredPhotoLabels.joinToString(", ")}")
             }
         }
+        binding.buttonWorkflowComplete.text = if (closeout.ready) "Finish closeout" else "Review blockers"
         binding.buttonPrimaryWorkflow.text = summary.quickActions.firstOrNull()?.label ?: "Open workflow"
         binding.buttonSecondaryWorkflow.text = summary.quickActions.getOrNull(1)?.label ?: "More actions"
 
