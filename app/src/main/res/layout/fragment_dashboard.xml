@@ -30,6 +30,16 @@
             android:textColor="@color/brand_subtle_text"
             android:textSize="13sp" />
 
+        <TextView
+            android:id="@+id/text_demo_readiness"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/fielddesk_dashboard_demo_needs_attention"
+            android:textColor="@color/brand_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
         android:layout_height="wrap_content"

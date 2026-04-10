@@ -141,6 +141,19 @@ class JobWorkflowTest {
         assertEquals("am", active?.id)
     }
 
+    @Test
+    fun sortForTechnicianFlow_ignores_date_prefixes_and_uses_actual_time_window() {
+        val ordered = JobWorkflow.sortForTechnicianFlow(
+            listOf(
+                job("pm", "Pending").copy(appointmentWindow = "2026-04-10 12:00 PM - 2026-04-10 5:00 PM"),
+                job("am", "Pending").copy(appointmentWindow = "2026-04-10 8:00 AM - 2026-04-10 10:00 AM"),
+                job("mid", "Pending").copy(appointmentWindow = "2026-04-10 10:00 AM - 2026-04-10 12:00 PM"),
+            )
+        )
+
+        assertEquals(listOf("am", "mid", "pm"), ordered.map { it.id })
+    }
+
     private fun job(id: String, status: String): Job {
         return Job(
             id = id,

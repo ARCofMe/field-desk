@@ -54,6 +54,8 @@
     <string name="fielddesk_dashboard_open_next_stop">Open next stop</string>
     <string name="fielddesk_dashboard_last_refresh_empty">Queue has not been refreshed yet.</string>
     <string name="fielddesk_dashboard_last_refresh">Last refresh: %1$s</string>
+    <string name="fielddesk_dashboard_demo_ready">Presentation readiness: Ready</string>
+    <string name="fielddesk_dashboard_demo_needs_attention">Presentation readiness: Needs attention</string>
     <string name="fielddesk_workflow_no_stop_selected">No stop selected</string>
     <string name="fielddesk_workflow_choose_stop_guidance">Open Today or Queue, choose a stop, then return here to work the active job.</string>
     <string name="fielddesk_action_photos">Photos</string>

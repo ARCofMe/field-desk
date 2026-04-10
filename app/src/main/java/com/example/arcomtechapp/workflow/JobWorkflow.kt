@@ -185,11 +185,12 @@ object JobWorkflow {
 
     private fun parseWindowStartMinutes(window: String): Int? {
         val lower = window.lowercase(Locale.getDefault())
+        val normalized = DATE_PATTERN.matcher(lower).replaceAll(" ").replace(" to ", " - ")
         if ("midnight" in lower) return 0
         if ("noon" in lower) return 12 * 60
 
         val matches = mutableListOf<TimeToken>()
-        val matcher = WINDOW_TIME_PATTERN.matcher(lower)
+        val matcher = WINDOW_TIME_PATTERN.matcher(normalized)
         while (matcher.find()) {
             val rawHour = matcher.group(1)?.toIntOrNull() ?: continue
             val minute = matcher.group(2)?.toIntOrNull() ?: 0
@@ -232,4 +233,5 @@ object JobWorkflow {
     )
 
     private val WINDOW_TIME_PATTERN = Pattern.compile("(\\d{1,2})(?:[:.](\\d{2}))?\\s*(am|pm)?")
+    private val DATE_PATTERN = Pattern.compile("\\b\\d{4}[-/.]\\d{1,2}[-/.]\\d{1,2}\\b")
 }

@@ -98,6 +98,7 @@ class DashboardFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         updateWorkspaceButtons()
+        updateDemoReadiness(viewModel.todayJobs.value.orEmpty())
     }
 
     private fun observeViewModel() {
@@ -108,6 +109,7 @@ class DashboardFragment : Fragment() {
                 binding.textTodayState.text = getString(R.string.no_jobs_available)
             }
             updateNextStopCard(jobs)
+            updateDemoReadiness(jobs)
         }
 
         viewModel.summary.observe(viewLifecycleOwner) { summary ->
@@ -117,6 +119,7 @@ class DashboardFragment : Fragment() {
 
         viewModel.loading.observe(viewLifecycleOwner) { loading ->
             binding.progressToday.visibility = if (loading) View.VISIBLE else View.GONE
+            updateDemoReadiness(viewModel.todayJobs.value.orEmpty())
         }
 
         viewModel.error.observe(viewLifecycleOwner) { error ->
@@ -124,6 +127,7 @@ class DashboardFragment : Fragment() {
             if (error != null) {
                 binding.textTodayState.text = error
             }
+            updateDemoReadiness(viewModel.todayJobs.value.orEmpty())
         }
 
         viewModel.connectionStatus.observe(viewLifecycleOwner) { status ->
@@ -171,13 +175,11 @@ class DashboardFragment : Fragment() {
     }
 
     private fun buildGoogleRouteUrl(jobs: List<com.example.arcomtechapp.data.models.Job>): String {
-        // Use Google Maps web directions with optimize:true to let Maps reorder stops.
         val encodedStops = jobs.map { Uri.encode(it.address) }
+        if (encodedStops.isEmpty()) return ""
         val origin = "Current+Location"
         val destination = encodedStops.last()
-        val waypoints = if (encodedStops.size > 1) {
-            "optimize:true|" + encodedStops.dropLast(1).joinToString("|")
-        } else ""
+        val waypoints = if (encodedStops.size > 1) encodedStops.dropLast(1).joinToString("|") else ""
         return buildString {
             append("https://www.google.com/maps/dir/?api=1")
             append("&origin=$origin")
@@ -199,6 +201,7 @@ class DashboardFragment : Fragment() {
         binding.buttonOpenOpsHub.alpha = if (opsHubUrl != null) 1f else 0.55f
         binding.buttonOpenRouteDesk.alpha = if (routeDeskUrl != null) 1f else 0.55f
         binding.buttonOpenPartsDesk.alpha = if (partsDeskUrl != null) 1f else 0.55f
+        updateDemoReadiness(viewModel.todayJobs.value.orEmpty())
     }
 
     private fun updateNextStopCard(jobs: List<Job>) {
@@ -223,6 +226,49 @@ class DashboardFragment : Fragment() {
         binding.buttonOpenNextStop.isEnabled = true
         binding.buttonOpenNextStop.alpha = 1f
     }
+
+    private fun updateDemoReadiness(jobs: List<Job>) {
+        val configStatus = storage.getConfigStatus()
+        val workspaceReadyCount = listOf(
+            WorkspaceLinks.normalizeUrl(storage.getOpsHubUrl()),
+            WorkspaceLinks.normalizeUrl(storage.getRouteDeskUrl()),
+            WorkspaceLinks.normalizeUrl(storage.getPartsDeskUrl())
+        ).count { it != null }
+        val checks = listOf(
+            configStatus.complete,
+            jobs.isNotEmpty(),
+            nextStopJob != null,
+            workspaceReadyCount >= 2,
+            !viewModel.loading.value.orFalse(),
+            viewModel.error.value.isNullOrBlank()
+        )
+        val ready = checks.all { it }
+        val details = mutableListOf<String>()
+        if (!configStatus.complete) {
+            details += "config"
+        }
+        if (jobs.isEmpty()) {
+            details += "queue"
+        }
+        if (nextStopJob == null) {
+            details += "next stop"
+        }
+        if (workspaceReadyCount < 2) {
+            details += "ecosystem links"
+        }
+        if (!viewModel.error.value.isNullOrBlank()) {
+            details += "load error"
+        }
+        binding.textDemoReadiness.text = if (ready) {
+            getString(R.string.fielddesk_dashboard_demo_ready)
+        } else {
+            val suffix = if (details.isEmpty()) "" else ": ${details.joinToString(", ")}"
+            getString(R.string.fielddesk_dashboard_demo_needs_attention) + suffix
+        }
+        binding.textDemoReadiness.alpha = if (ready) 0.92f else 1f
+    }
+
+    private fun Boolean?.orFalse(): Boolean = this ?: false
 
     private fun openConfiguredWorkspace(url: String?, missingMessage: String, invalidMessage: String) {
         if (url.isNullOrBlank()) {
