@@ -84,11 +84,6 @@ class MainActivity : AppCompatActivity(),
             return
         }
         updateNavHeader()
-        if (!storage.getConfigStatus().complete) {
-            startActivity(Intent(this, SettingsActivity::class.java).apply {
-                putExtra(SettingsActivity.EXTRA_REQUIRE_SETUP, true)
-            })
-        }
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {

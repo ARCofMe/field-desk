@@ -128,6 +128,19 @@ class JobWorkflowTest {
         assertEquals(listOf("1", "2", "3"), ordered.map { it.id })
     }
 
+    @Test
+    fun activeJob_keeps_the_earliest_service_window_as_the_default_stop() {
+        val active = JobWorkflow.activeJob(
+            listOf(
+                job("pm", "Pending").copy(appointmentWindow = "1-3"),
+                job("am", "Completed").copy(appointmentWindow = "8-10"),
+                job("mid", "Pending").copy(appointmentWindow = "10-12"),
+            )
+        )
+
+        assertEquals("am", active?.id)
+    }
+
     private fun job(id: String, status: String): Job {
         return Job(
             id = id,

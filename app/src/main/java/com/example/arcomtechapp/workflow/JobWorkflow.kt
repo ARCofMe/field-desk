@@ -167,7 +167,7 @@ object JobWorkflow {
 
     fun activeJob(jobs: List<Job>): Job? {
         val ordered = sortForTechnicianFlow(jobs)
-        return ordered.firstOrNull { !it.status.contains("complete", ignoreCase = true) } ?: ordered.firstOrNull()
+        return ordered.firstOrNull()
     }
 
     private fun appointmentStartSortKey(window: String?): Int {
