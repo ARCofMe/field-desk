@@ -21,6 +21,14 @@ Required:
 - API key for the selected backend
 - technician ID
 
+For field use, prefer `Ops Hub` mode with the Cloudflare-backed production endpoint:
+
+```text
+https://ops-hub.org
+```
+
+`http://127.0.0.1:8787` is only for local tablet rehearsal with `adb reverse tcp:8787 tcp:8787`.
+
 Technician ID rules:
 
 - with `Ops Hub`, use a BlueFolder technician id or a Discord-linked technician id
