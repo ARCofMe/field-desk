@@ -33,6 +33,7 @@ Technician ID rules:
 
 - with `Ops Hub`, use a BlueFolder technician id or a Discord-linked technician id
 - with direct `BlueFolder`, use the BlueFolder technician id
+- FieldDesk technician identity is per device in Settings, not compiled into the APK.
 
 Optional:
 
