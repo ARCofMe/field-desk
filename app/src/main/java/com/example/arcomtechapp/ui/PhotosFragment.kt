@@ -311,18 +311,22 @@ class PhotosFragment : Fragment() {
     }
 
     private fun buildGalleryUploadRequest(uriText: String): PhotoUploadRequest? {
-        val uri = android.net.Uri.parse(uriText)
-        val resolver = requireContext().contentResolver
-        val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
-        val contentType = resolver.getType(uri) ?: "image/jpeg"
-        val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(contentType) ?: "jpg"
-        val filename = buildPhotoFilename(extension)
-        return PhotoUploadRequest(
-            filename = filename,
-            contentType = contentType,
-            data = bytes,
-            label = selectedPhotoLabel()
-        )
+        return try {
+            val uri = android.net.Uri.parse(uriText)
+            val resolver = requireContext().contentResolver
+            val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
+            val contentType = resolver.getType(uri) ?: "image/jpeg"
+            val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(contentType) ?: "jpg"
+            val filename = buildPhotoFilename(extension)
+            PhotoUploadRequest(
+                filename = filename,
+                contentType = contentType,
+                data = bytes,
+                label = selectedPhotoLabel()
+            )
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun buildPhotoFilename(extension: String): String {

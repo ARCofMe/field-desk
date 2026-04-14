@@ -127,7 +127,7 @@ class JobWorkflowViewModelTest {
         viewModel.uploadPhoto(job(), request)
 
         assertEquals(
-            "Direct BlueFolder photo upload handoff is not wired in the app yet",
+            "Direct BlueFolder photo upload handoff is not wired in the app yet Keep this screen open, verify OpsHub settings, and retry before leaving the stop.",
             viewModel.actionMessage.getOrAwaitValue(ignoreNulls = true)
         )
     }

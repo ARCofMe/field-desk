@@ -102,7 +102,7 @@ class JobWorkflowViewModel(
                 if (result.success) {
                     "Photo attached to SR. Capture the next required shot when ready."
                 } else {
-                    result.message.ifBlank { "Photo was not attached. Keep this screen open and retry before leaving the stop." }
+                    formatPhotoUploadFailure(result.message)
                 }
             )
             refreshPhotoStatus(job)
@@ -133,6 +133,16 @@ class JobWorkflowViewModel(
     private fun formatError(message: String?): String {
         if (message.isNullOrBlank()) return "Workflow action failed"
         return message.substringBefore("<!DOCTYPE").substringBefore("<html").replace("\n", " ").trim()
+    }
+
+    private fun formatPhotoUploadFailure(message: String?): String {
+        val clean = formatError(message).takeIf { it != "Workflow action failed" }
+        val base = clean ?: "Photo was not attached."
+        return if (base.contains("retry", ignoreCase = true) || base.contains("not attached", ignoreCase = true)) {
+            base
+        } else {
+            "$base Keep this screen open, verify OpsHub settings, and retry before leaving the stop."
+        }
     }
 
     class Factory(
