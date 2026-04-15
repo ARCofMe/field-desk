@@ -80,4 +80,34 @@ class TechnicianDashboardViewModelTest {
 
         assertEquals("dash fail", viewModel.error.getOrAwaitValue(ignoreNulls = true))
     }
+
+    @Test
+    fun `loadDashboard failure keeps last loaded schedule for field stability`() {
+        val repo = mockk<FieldOpsRepository>()
+        val jobs = listOf(
+            Job(id = "2", address = "B", appointmentWindow = "10-12", customerName = "Cust2", customerPhone = "555", status = "Pending", distanceMiles = 2.0),
+            Job(id = "1", address = "A", appointmentWindow = "8-10", customerName = "Cust1", customerPhone = "555", status = "Completed", distanceMiles = 1.0)
+        )
+        every { repo.testPython() } returns ""
+        every { repo.getAssignmentsForUser(any()) } returns emptyList()
+        every { repo.checkConnection(any(), any()) } returns "ok"
+        every { repo.getTodayJobs(any(), any(), "t1") } returns jobs andThenThrows RuntimeException("network down")
+        every { repo.getAllJobs(any(), any(), any(), any(), any(), any()) } returns emptyList()
+        every { repo.submitJobNote(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+        every { repo.updateJobStatus(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+        every { repo.createPartsRequest(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+        every { repo.preparePhotoUpload(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+
+        val viewModel = TechnicianDashboardViewModel(repo)
+        viewModel.loadDashboard(session("t1"))
+        assertEquals(listOf("1", "2"), viewModel.todayJobs.getOrAwaitValue(time = 5).map { it.id })
+
+        viewModel.loadDashboard(session("t1"))
+
+        assertEquals(listOf("1", "2"), viewModel.todayJobs.getOrAwaitValue(time = 5).map { it.id })
+        assertEquals("Showing last loaded schedule. network down", viewModel.error.getOrAwaitValue(ignoreNulls = true))
+        val summary = viewModel.summary.getOrAwaitValue(time = 5)
+        assertEquals(1, summary.completed)
+        assertEquals(1, summary.pending)
+    }
 }

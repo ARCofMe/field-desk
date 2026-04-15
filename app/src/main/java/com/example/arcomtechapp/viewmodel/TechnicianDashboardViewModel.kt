@@ -16,6 +16,8 @@ import kotlinx.coroutines.launch
 class TechnicianDashboardViewModel(
     private val repo: FieldOpsRepository = BlueFolderFieldOpsRepository()
 ) : ViewModel() {
+    private var lastTodayJobs: List<Job> = emptyList()
+    private var lastSummary: DashboardSummary? = null
 
     data class DashboardSummary(
         val completed: Int,
@@ -51,13 +53,22 @@ class TechnicianDashboardViewModel(
                 val orderedJobs = JobWorkflow.sortForTechnicianFlow(jobs)
                 val completed = jobs.count { it.status.equals("completed", ignoreCase = true) }
                 val pending = jobs.size - completed
+                val summary = DashboardSummary(completed = completed, pending = pending)
 
+                lastTodayJobs = orderedJobs
+                lastSummary = summary
                 _todayJobs.postValue(orderedJobs)
-                _summary.postValue(DashboardSummary(completed = completed, pending = pending))
+                _summary.postValue(summary)
                 _lastLoadedAt.postValue(System.currentTimeMillis())
                 _error.postValue(null)
             } catch (e: Exception) {
-                _error.postValue(formatError(e.message))
+                if (lastTodayJobs.isNotEmpty()) {
+                    _todayJobs.postValue(lastTodayJobs)
+                    lastSummary?.let { _summary.postValue(it) }
+                    _error.postValue("Showing last loaded schedule. ${formatError(e.message)}")
+                } else {
+                    _error.postValue(formatError(e.message))
+                }
             }
             _loading.postValue(false)
         }

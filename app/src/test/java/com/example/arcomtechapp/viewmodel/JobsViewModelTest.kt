@@ -82,4 +82,37 @@ class JobsViewModelTest {
         // Jobs are never posted; ensure LiveData remains unset/null-safe.
         assertNotNull(viewModel.jobs)
     }
+
+    @Test
+    fun `loadJobs failure keeps last loaded jobs for field stability`() {
+        val repo = mockk<FieldOpsRepository>()
+        val jobs = listOf(
+            Job(
+                id = "cached",
+                address = "123 Main",
+                appointmentWindow = "8-10",
+                customerName = "Acme",
+                customerPhone = "555",
+                status = "Pending",
+                distanceMiles = 1.0
+            )
+        )
+        every { repo.testPython() } returns ""
+        every { repo.getAssignmentsForUser(any()) } returns emptyList()
+        every { repo.checkConnection(any(), any()) } returns "ok"
+        every { repo.getAllJobs(null, null, "t1", null, null, "scheduled") } returns jobs andThenThrows RuntimeException("network down")
+        every { repo.submitJobNote(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+        every { repo.updateJobStatus(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+        every { repo.createPartsRequest(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+        every { repo.preparePhotoUpload(any(), any(), any(), any()) } returns TechnicianActionResult(false, "")
+
+        val viewModel = JobsViewModel(repo)
+        viewModel.loadJobs(session("t1"))
+        assertEquals("cached", viewModel.jobs.getOrAwaitValue(time = 5).first().id)
+
+        viewModel.loadJobs(session("t1"))
+
+        assertEquals("cached", viewModel.jobs.getOrAwaitValue(time = 5).first().id)
+        assertEquals("Showing last loaded jobs. network down", viewModel.error.getOrAwaitValue(ignoreNulls = true))
+    }
 }

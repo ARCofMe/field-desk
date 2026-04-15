@@ -16,6 +16,7 @@ import android.util.Log
 class JobsViewModel(
     private val repo: FieldOpsRepository = BlueFolderFieldOpsRepository()
 ) : ViewModel() {
+    private var lastLoadedJobs: List<Job> = emptyList()
 
     private val _jobs = MutableLiveData<List<Job>>()
     val jobs: LiveData<List<Job>> = _jobs
@@ -39,11 +40,17 @@ class JobsViewModel(
             try {
                 val jobs = repo.getAllJobs(session.baseUrl, session.apiKey, session.technicianId, startDate, endDate, dateRangeType)
                 Log.d("JobsViewModel", "Loaded ${jobs.size} jobs")
+                lastLoadedJobs = jobs
                 _jobs.postValue(jobs)
                 _error.postValue(null)
             } catch (e: Exception) {
                 Log.e("JobsViewModel", "Error loading jobs", e)
-                _error.postValue(formatError(e.message))
+                if (lastLoadedJobs.isNotEmpty()) {
+                    _jobs.postValue(lastLoadedJobs)
+                    _error.postValue("Showing last loaded jobs. ${formatError(e.message)}")
+                } else {
+                    _error.postValue(formatError(e.message))
+                }
             }
             _loading.postValue(false)
         }
