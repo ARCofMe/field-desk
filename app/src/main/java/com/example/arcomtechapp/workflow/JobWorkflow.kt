@@ -175,7 +175,7 @@ object JobWorkflow {
         if (ordered.isEmpty()) return "No open stops"
         return ordered.take(limit.coerceAtLeast(1)).joinToString(" → ") { job ->
             val window = job.appointmentWindow.takeIf { it.isNotBlank() } ?: "No window"
-            "#${job.id} ${window}"
+            "${displayJobToken(job)} ${window}"
         }
     }
 
@@ -238,6 +238,13 @@ object JobWorkflow {
             null -> if (normalizedHour in 1..6) normalizedHour += 12
         }
         return (normalizedHour * 60) + minute
+    }
+
+    private fun displayJobToken(job: Job): String {
+        val cleanId = job.id.trim()
+        if (cleanId.isNotBlank()) return "#$cleanId"
+        val cleanName = job.customerName.trim()
+        return cleanName.ifBlank { "Stop" }
     }
 
     private data class TimeToken(

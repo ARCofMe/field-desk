@@ -180,6 +180,19 @@ class JobWorkflowTest {
         assertEquals("#am 8-10 AM → #mid 10-12 → #pm 1-3 PM", brief)
     }
 
+    @Test
+    fun routeOrderBrief_handles_missing_ids_and_windows() {
+        val brief = JobWorkflow.routeOrderBrief(
+            listOf(
+                job("", "Pending").copy(customerName = "Jane Customer", appointmentWindow = ""),
+                job("pm", "Pending").copy(appointmentWindow = "1-3 PM"),
+            ),
+            limit = 2
+        )
+
+        assertEquals("#pm 1-3 PM → Jane Customer No window", brief)
+    }
+
     private fun job(id: String, status: String): Job {
         return Job(
             id = id,
