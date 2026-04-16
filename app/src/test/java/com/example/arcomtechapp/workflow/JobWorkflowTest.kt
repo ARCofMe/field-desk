@@ -166,6 +166,20 @@ class JobWorkflowTest {
         assertEquals(listOf("am", "mid", "pm"), ordered.map { it.id })
     }
 
+    @Test
+    fun routeOrderBrief_shows_open_stops_in_service_window_order() {
+        val brief = JobWorkflow.routeOrderBrief(
+            listOf(
+                job("done", "Completed").copy(appointmentWindow = "8-10"),
+                job("pm", "Pending").copy(appointmentWindow = "1-3 PM"),
+                job("am", "Pending").copy(appointmentWindow = "8-10 AM"),
+                job("mid", "Pending").copy(appointmentWindow = "10-12"),
+            )
+        )
+
+        assertEquals("#am 8-10 AM → #mid 10-12 → #pm 1-3 PM", brief)
+    }
+
     private fun job(id: String, status: String): Job {
         return Job(
             id = id,

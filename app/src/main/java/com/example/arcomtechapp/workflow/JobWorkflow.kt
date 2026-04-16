@@ -170,6 +170,15 @@ object JobWorkflow {
         return ordered.firstOrNull { !isComplete(it) } ?: ordered.firstOrNull()
     }
 
+    fun routeOrderBrief(jobs: List<Job>, limit: Int = 3): String {
+        val ordered = sortForTechnicianFlow(jobs).filter { !isComplete(it) }
+        if (ordered.isEmpty()) return "No open stops"
+        return ordered.take(limit.coerceAtLeast(1)).joinToString(" → ") { job ->
+            val window = job.appointmentWindow.takeIf { it.isNotBlank() } ?: "No window"
+            "#${job.id} ${window}"
+        }
+    }
+
     fun isComplete(job: Job): Boolean {
         val normalizedStatus = job.status.trim().lowercase(Locale.getDefault())
         return job.statusMeta?.isClosed == true || normalizedStatus.contains("complete")

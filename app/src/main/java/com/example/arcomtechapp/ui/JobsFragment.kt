@@ -114,7 +114,7 @@ class JobsFragment : Fragment() {
                 buildHeaderText()
             } else {
                 val active = JobWorkflow.activeJob(ordered)
-                buildHeaderText() + " • Focus: #${active?.id ?: ordered.first().id}"
+                buildHeaderText() + " • Focus: #${active?.id ?: ordered.first().id} • ${JobWorkflow.routeOrderBrief(ordered)}"
             }
         }
 
