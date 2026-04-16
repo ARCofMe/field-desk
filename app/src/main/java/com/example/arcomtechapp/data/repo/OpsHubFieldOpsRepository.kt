@@ -287,7 +287,7 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
     private fun parseJob(obj: JSONObject): Job {
         return Job(
             id = obj.optString("id"),
-            address = obj.optString("address"),
+            address = parseAddress(obj),
             appointmentWindow = obj.optString("appointmentWindow"),
             customerName = obj.optString("customerName"),
             customerPhone = obj.optString("customerPhone"),
@@ -299,6 +299,29 @@ class OpsHubFieldOpsRepository : FieldOpsRepository {
             nextAction = obj.optString("nextAction").takeIf { it.isNotBlank() }
         )
     }
+
+    private fun parseAddress(obj: JSONObject): String {
+        val street = firstNonBlank(
+            obj.optString("address"),
+            obj.optString("location"),
+            obj.optString("customerLocationStreetAddress"),
+            obj.optString("addressStreet"),
+            obj.optString("street")
+        )
+        val city = firstNonBlank(obj.optString("city"), obj.optString("customerLocationCity"), obj.optString("addressCity"))
+        val state = firstNonBlank(obj.optString("state"), obj.optString("customerLocationState"), obj.optString("addressState"))
+        val postalCode = firstNonBlank(
+            obj.optString("postalCode"),
+            obj.optString("zip"),
+            obj.optString("customerLocationPostalCode"),
+            obj.optString("addressPostalCode")
+        )
+        val locality = listOf(city, state, postalCode).filter { it.isNotBlank() }.joinToString(" ")
+        return listOf(street, locality).filter { it.isNotBlank() }.joinToString(", ")
+    }
+
+    private fun firstNonBlank(vararg values: String): String =
+        values.firstOrNull { it.isNotBlank() } ?: ""
 
     private fun parseJobStatusMeta(obj: JSONObject): JobStatusMeta {
         return JobStatusMeta(
