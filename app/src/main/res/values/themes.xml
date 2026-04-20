@@ -45,7 +45,7 @@
         <item name="android:textAllCaps">false</item>
         <item name="android:insetTop">10dp</item>
         <item name="android:insetBottom">10dp</item>
-        <item name="cornerRadius">14dp</item>
+        <item name="cornerRadius">8dp</item>
     </style>
 
     <style name="Widget.ARCoM.Switch" parent="Widget.MaterialComponents.CompoundButton.Switch">
