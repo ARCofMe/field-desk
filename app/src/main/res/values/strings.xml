@@ -40,6 +40,7 @@
     <string name="fielddesk_guided_workflow">Guided workflow</string>
     <string name="fielddesk_field_exceptions">Field exceptions</string>
     <string name="fielddesk_customer_context">Customer context</string>
+    <string name="fielddesk_office_context">Office context</string>
     <string name="fielddesk_workspace_links_title">OpsHub ecosystem</string>
     <string name="fielddesk_workspace_links_summary">Save the browser links for sibling apps so dispatch and parts stay one tap away from the truck.</string>
     <string name="fielddesk_workspace_summary">%1$d of %2$d workspace launchers configured</string>
