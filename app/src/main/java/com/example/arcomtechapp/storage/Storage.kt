@@ -16,6 +16,8 @@ class Storage(context: Context) {
         val backendMode: BackendMode,
         val opsHubBaseUrl: String?,
         val opsHubApiKey: String?,
+        val fieldDeskWebUrl: String?,
+        val preferWebFieldDesk: Boolean,
         val isAuthenticated: Boolean,
         val autoCompressPhotos: Boolean,
         val technicianName: String?,
@@ -47,6 +49,13 @@ class Storage(context: Context) {
         val finalOutcome: String?,
         val finalOutcomeNote: String?,
         val workStartedAtEpochMillis: Long?
+    )
+
+    data class OfflineActionRecord(
+        val id: String,
+        val actionType: String,
+        val payload: String,
+        val createdAtEpochMillis: Long
     )
 
     enum class BackendMode {
@@ -85,6 +94,20 @@ class Storage(context: Context) {
     }
 
     fun getOpsHubApiKey(): String? = prefs.getString(KEY_OPS_HUB_API_KEY, null)
+
+    fun saveFieldDeskWebUrl(url: String?) {
+        prefs.edit().apply {
+            if (url.isNullOrBlank()) remove(KEY_FIELD_DESK_WEB_URL) else putString(KEY_FIELD_DESK_WEB_URL, url)
+        }.apply()
+    }
+
+    fun getFieldDeskWebUrl(): String? = prefs.getString(KEY_FIELD_DESK_WEB_URL, null)
+
+    fun setPreferWebFieldDesk(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_PREFER_WEB_FIELDDESK, enabled).apply()
+    }
+
+    fun shouldPreferWebFieldDesk(): Boolean = prefs.getBoolean(KEY_PREFER_WEB_FIELDDESK, true)
 
     fun setBackendMode(mode: BackendMode) {
         prefs.edit().putString(KEY_BACKEND_MODE, mode.name).apply()
@@ -360,6 +383,8 @@ class Storage(context: Context) {
         backendMode = getBackendMode(),
         opsHubBaseUrl = getOpsHubBaseUrl(),
         opsHubApiKey = getOpsHubApiKey(),
+        fieldDeskWebUrl = getFieldDeskWebUrl(),
+        preferWebFieldDesk = shouldPreferWebFieldDesk(),
         isAuthenticated = isAuthenticated(),
         autoCompressPhotos = shouldAutoCompressPhotos(),
         technicianName = getTechnicianName(),
@@ -394,12 +419,49 @@ class Storage(context: Context) {
         prefs.edit().clear().apply()
     }
 
+    fun enqueueOfflineAction(actionType: String, payload: String): OfflineActionRecord {
+        val timestamp = System.currentTimeMillis()
+        val record = OfflineActionRecord(
+            id = "offline_${timestamp}_${actionType.take(32)}",
+            actionType = actionType,
+            payload = payload,
+            createdAtEpochMillis = timestamp
+        )
+        val stored = getOfflineActions().toMutableList()
+        stored.add(record)
+        prefs.edit().putString(KEY_OFFLINE_ACTIONS_JSON, encodeOfflineActions(stored)).apply()
+        return record
+    }
+
+    fun getOfflineActions(): List<OfflineActionRecord> {
+        val raw = prefs.getString(KEY_OFFLINE_ACTIONS_JSON, null).orEmpty()
+        if (raw.isBlank()) return emptyList()
+        return raw
+            .split("\n")
+            .mapNotNull { line ->
+                val pieces = line.split("|", limit = 4)
+                if (pieces.size != 4) return@mapNotNull null
+                OfflineActionRecord(
+                    id = pieces[0],
+                    actionType = pieces[1],
+                    createdAtEpochMillis = pieces[2].toLongOrNull() ?: 0L,
+                    payload = pieces[3]
+                )
+            }
+    }
+
+    fun clearOfflineActions() {
+        prefs.edit().remove(KEY_OFFLINE_ACTIONS_JSON).apply()
+    }
+
     private companion object {
         const val KEY_API_KEY = "api_key"
         const val KEY_BASE_URL = "base_url"
         const val KEY_BACKEND_MODE = "backend_mode"
         const val KEY_OPS_HUB_BASE_URL = "ops_hub_base_url"
         const val KEY_OPS_HUB_API_KEY = "ops_hub_api_key"
+        const val KEY_FIELD_DESK_WEB_URL = "field_desk_web_url"
+        const val KEY_PREFER_WEB_FIELDDESK = "prefer_web_fielddesk"
         const val KEY_IS_AUTH = "is_authenticated"
         const val KEY_AUTO_COMPRESS = "auto_compress"
         const val KEY_TECH_NAME = "tech_name"
@@ -415,6 +477,7 @@ class Storage(context: Context) {
         const val KEY_PARTS_DESK_URL = "parts_desk_url"
         const val KEY_LAST_JOB_ACTION = "last_job_action"
         const val KEY_LAST_JOB_ACTION_JOB_ID = "last_job_action_job_id"
+        const val KEY_OFFLINE_ACTIONS_JSON = "offline_actions_json"
     }
 
     private fun jobNotesKey(jobId: String): String = "job_notes_$jobId"
@@ -432,4 +495,14 @@ class Storage(context: Context) {
     private fun jobFinalOutcomeNoteKey(jobId: String): String = "job_final_outcome_note_$jobId"
 
     private fun jobWorkStartedAtKey(jobId: String): String = "job_work_started_at_$jobId"
+
+    private fun encodeOfflineActions(items: List<OfflineActionRecord>): String =
+        items.joinToString("\n") { item ->
+            listOf(
+                item.id.replace("|", " "),
+                item.actionType.replace("|", " "),
+                item.createdAtEpochMillis.toString(),
+                item.payload.replace("\n", "\\n")
+            ).joinToString("|")
+        }
 }

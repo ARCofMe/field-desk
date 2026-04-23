@@ -109,6 +109,8 @@ class SettingsActivity : AppCompatActivity() {
         storage.saveBaseUrl(binding.inputBaseUrl.text?.toString()?.trim().orEmpty().ifBlank { null })
         storage.saveOpsHubBaseUrl(binding.inputOpsHubBaseUrl.text?.toString()?.trim().orEmpty().ifBlank { null })
         storage.saveOpsHubApiKey(binding.inputOpsHubApiKey.text?.toString()?.trim().orEmpty().ifBlank { null })
+        storage.saveFieldDeskWebUrl(binding.inputFielddeskWebUrl.text?.toString()?.trim().orEmpty().ifBlank { null })
+        storage.setPreferWebFieldDesk(binding.switchPreferWebFielddesk.isChecked)
         storage.setThemeMode(selectedThemeMode())
         storage.saveTechnician(
             binding.inputTechnicianName.text?.toString()?.trim().orEmpty().ifBlank { null },
@@ -131,12 +133,14 @@ class SettingsActivity : AppCompatActivity() {
         binding.inputBaseUrl.setText(snapshot.baseUrl.orEmpty())
         binding.inputOpsHubBaseUrl.setText(snapshot.opsHubBaseUrl.orEmpty())
         binding.inputOpsHubApiKey.setText(snapshot.opsHubApiKey.orEmpty())
+        binding.inputFielddeskWebUrl.setText(snapshot.fieldDeskWebUrl.orEmpty())
         binding.inputTechnicianName.setText(snapshot.technicianName.orEmpty())
         binding.inputTechnicianId.setText(snapshot.technicianId.orEmpty())
 
         binding.switchAuthenticated.isChecked = snapshot.isAuthenticated
         binding.switchAutoCompress.isChecked = snapshot.autoCompressPhotos
         binding.switchDebugMode.isChecked = snapshot.debugMode
+        binding.switchPreferWebFielddesk.isChecked = snapshot.preferWebFieldDesk
 
         binding.textLastSync.text = formatSyncTime(snapshot.lastSyncEpochMillis)
         updateStatus(snapshot)
@@ -158,6 +162,9 @@ class SettingsActivity : AppCompatActivity() {
         if (activeKey.isNullOrBlank()) pieces.add("API key missing") else pieces.add("API key saved")
         if (activeBase.isNullOrBlank()) pieces.add("Base URL missing") else pieces.add("Base URL set")
         if (snapshot.technicianId.isNullOrBlank()) pieces.add("Technician ID missing") else pieces.add("Technician ID set")
+        if (snapshot.backendMode == Storage.BackendMode.OPS_HUB && snapshot.preferWebFieldDesk) {
+            if (snapshot.fieldDeskWebUrl.isNullOrBlank()) pieces.add("Web host URL missing") else pieces.add("Web host URL set")
+        }
         pieces.add(if (snapshot.isAuthenticated) "Authenticated" else "Not authenticated")
         binding.textStatus.text = pieces.joinToString(" • ")
     }

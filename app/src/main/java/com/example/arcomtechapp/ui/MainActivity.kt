@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity(),
     private enum class Destination(
         val menuId: Int?
     ) {
+        WEB(R.id.nav_web_fielddesk),
         TODAY(R.id.nav_dashboard),
         JOBS(R.id.nav_jobs),
         WORKFLOW(null),
@@ -73,7 +74,7 @@ class MainActivity : AppCompatActivity(),
         })
 
         if (savedInstanceState == null) {
-            navigateTo(Destination.TODAY)
+            navigateTo(defaultDestination())
         }
     }
 
@@ -88,6 +89,7 @@ class MainActivity : AppCompatActivity(),
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.nav_web_fielddesk -> navigateTo(Destination.WEB)
             R.id.nav_dashboard -> openToday()
             R.id.nav_jobs -> openJobs()
             R.id.nav_photos -> openPhotos()
@@ -137,16 +139,31 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun Destination.fragment(): androidx.fragment.app.Fragment = when (this) {
+        Destination.WEB -> WebFieldDeskFragment()
         Destination.TODAY -> TodayFragment()
         Destination.JOBS -> JobsFragment()
         Destination.WORKFLOW -> WorkflowHostFragment()
     }
 
     private fun currentDestination(): Destination? = when (supportFragmentManager.findFragmentById(R.id.content_frame)) {
+        is WebFieldDeskFragment -> Destination.WEB
         is TodayFragment -> Destination.TODAY
         is JobsFragment -> Destination.JOBS
         is WorkflowHostFragment -> Destination.WORKFLOW
         else -> null
+    }
+
+    private fun defaultDestination(): Destination {
+        val snapshot = storage.getSnapshot()
+        return if (
+            snapshot.backendMode == Storage.BackendMode.OPS_HUB &&
+            snapshot.preferWebFieldDesk &&
+            !snapshot.fieldDeskWebUrl.isNullOrBlank()
+        ) {
+            Destination.WEB
+        } else {
+            Destination.TODAY
+        }
     }
 
     private fun updateNavHeader() {

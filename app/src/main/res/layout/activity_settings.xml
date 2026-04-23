@@ -180,6 +180,26 @@
                                 android:inputType="textNoSuggestions"
                                 android:maxLines="1" />
                         </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switch_prefer_web_fielddesk"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="Prefer web FieldDesk host in Android" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:hint="FieldDesk web URL">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/input_fielddesk_web_url"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri" />
+                        </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
