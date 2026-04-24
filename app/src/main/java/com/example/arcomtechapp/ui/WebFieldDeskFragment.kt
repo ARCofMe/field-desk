@@ -2,6 +2,7 @@ package com.example.arcomtechapp.ui
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -12,9 +13,12 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import com.example.arcomtechapp.databinding.FragmentWebFielddeskBinding
 import com.example.arcomtechapp.storage.Storage
+import android.util.Base64
+import java.io.ByteArrayOutputStream
 
 class WebFieldDeskFragment : Fragment() {
 
@@ -23,11 +27,37 @@ class WebFieldDeskFragment : Fragment() {
     private lateinit var storage: Storage
     private lateinit var bridge: WebFieldDeskBridge
     private var allowedHost: String? = null
+    private var pendingCaptureLabel: String = "job photo"
+    private var pendingCaptureSrId: String = ""
+    private val cameraLauncher = registerForActivityResult(
+        ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap == null) {
+            dispatchNativePhotoResult(success = false, message = "Camera capture canceled.")
+            return@registerForActivityResult
+        }
+        storage.recordJobPhotoCapture(pendingCaptureSrId, pendingCaptureLabel)
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+        dispatchNativePhotoResult(
+            success = true,
+            message = "Native camera capture complete.",
+            dataBase64 = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP),
+            filename = buildPhotoFilename(pendingCaptureSrId, pendingCaptureLabel),
+            contentType = "image/jpeg",
+        )
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentWebFielddeskBinding.inflate(inflater, container, false)
         storage = Storage(requireContext())
-        bridge = WebFieldDeskBridge(requireContext().applicationContext, storage)
+        bridge = WebFieldDeskBridge(requireContext().applicationContext, storage) { label, srId ->
+            binding.webFielddesk.post {
+                pendingCaptureLabel = label
+                pendingCaptureSrId = srId
+                cameraLauncher.launch(null)
+            }
+        }
         setupStaticState()
         configureWebView(binding.webFielddesk)
         return binding.root
@@ -103,5 +133,31 @@ class WebFieldDeskFragment : Fragment() {
         runCatching {
             startActivity(Intent(Intent.ACTION_VIEW, uri))
         }
+    }
+
+    private fun dispatchNativePhotoResult(
+        success: Boolean,
+        message: String,
+        dataBase64: String? = null,
+        filename: String? = null,
+        contentType: String? = null,
+    ) {
+        val detail = org.json.JSONObject()
+            .put("success", success)
+            .put("srId", pendingCaptureSrId)
+            .put("label", pendingCaptureLabel)
+            .put("message", message)
+        dataBase64?.let { detail.put("dataBase64", it) }
+        filename?.let { detail.put("filename", it) }
+        contentType?.let { detail.put("contentType", it) }
+        binding.webFielddesk.evaluateJavascript(
+            "window.dispatchEvent(new CustomEvent('fielddesk:native-photo', { detail: $detail }));",
+            null
+        )
+    }
+
+    private fun buildPhotoFilename(srId: String, label: String): String {
+        val normalizedLabel = label.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').ifBlank { "photo" }
+        return "sr-${srId.ifBlank { "local" }}-$normalizedLabel.jpg"
     }
 }

@@ -10,7 +10,8 @@ import org.json.JSONObject
 
 class WebFieldDeskBridge(
     private val context: Context,
-    private val storage: Storage
+    private val storage: Storage,
+    private val onCapturePhotoRequest: ((label: String, srId: String) -> Unit)? = null
 ) {
 
     @JavascriptInterface
@@ -85,15 +86,11 @@ class WebFieldDeskBridge(
     fun capturePhoto(label: String, srId: String): String {
         val cleanLabel = label.trim().ifBlank { "unlabeled" }
         val cleanSrId = srId.trim()
-        storage.recordJobPhotoCapture(cleanSrId, cleanLabel)
-        storage.enqueueOfflineAction(
-            "capture_photo_request",
-            "label=$cleanLabel&srId=$cleanSrId"
-        )
+        onCapturePhotoRequest?.invoke(cleanLabel, cleanSrId)
         return JSONObject()
-            .put("success", false)
-            .put("bridgeStatus", "scaffolded")
-            .put("message", "Native photo capture bridge scaffold is in place, but camera capture is not wired yet.")
+            .put("success", true)
+            .put("bridgeStatus", "camera")
+            .put("message", "Opening native camera capture.")
             .toString()
     }
 
