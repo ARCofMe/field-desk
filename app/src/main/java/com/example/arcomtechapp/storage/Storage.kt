@@ -421,15 +421,23 @@ class Storage(context: Context) {
 
     fun enqueueOfflineAction(actionType: String, payload: String): OfflineActionRecord {
         val timestamp = System.currentTimeMillis()
+        val normalizedType = actionType.trim().ifBlank { "unknown" }
+        val normalizedPayload = payload.trim()
         val record = OfflineActionRecord(
-            id = "offline_${timestamp}_${actionType.take(32)}",
-            actionType = actionType,
-            payload = payload,
+            id = "offline_${timestamp}_${normalizedType.take(32)}",
+            actionType = normalizedType,
+            payload = normalizedPayload,
             createdAtEpochMillis = timestamp
         )
-        val stored = getOfflineActions().toMutableList()
+        val stored = getOfflineActions()
+            .filterNot {
+                it.actionType == normalizedType &&
+                    it.payload == normalizedPayload &&
+                    (timestamp - it.createdAtEpochMillis) in 0..OFFLINE_ACTION_DEDUPE_WINDOW_MS
+            }
+            .toMutableList()
         stored.add(record)
-        prefs.edit().putString(KEY_OFFLINE_ACTIONS_JSON, encodeOfflineActions(stored)).apply()
+        prefs.edit().putString(KEY_OFFLINE_ACTIONS_JSON, encodeOfflineActions(stored.takeLast(MAX_OFFLINE_ACTIONS))).apply()
         return record
     }
 
@@ -445,9 +453,18 @@ class Storage(context: Context) {
                     id = pieces[0],
                     actionType = pieces[1],
                     createdAtEpochMillis = pieces[2].toLongOrNull() ?: 0L,
-                    payload = pieces[3]
+                    payload = pieces[3].replace("\\n", "\n")
                 )
             }
+    }
+
+    fun removeOfflineAction(id: String): Boolean {
+        if (id.isBlank()) return false
+        val existing = getOfflineActions()
+        val remaining = existing.filterNot { it.id == id }
+        if (remaining.size == existing.size) return false
+        prefs.edit().putString(KEY_OFFLINE_ACTIONS_JSON, encodeOfflineActions(remaining)).apply()
+        return true
     }
 
     fun clearOfflineActions() {
@@ -478,6 +495,8 @@ class Storage(context: Context) {
         const val KEY_LAST_JOB_ACTION = "last_job_action"
         const val KEY_LAST_JOB_ACTION_JOB_ID = "last_job_action_job_id"
         const val KEY_OFFLINE_ACTIONS_JSON = "offline_actions_json"
+        const val MAX_OFFLINE_ACTIONS = 100
+        const val OFFLINE_ACTION_DEDUPE_WINDOW_MS = 5 * 60 * 1000L
     }
 
     private fun jobNotesKey(jobId: String): String = "job_notes_$jobId"

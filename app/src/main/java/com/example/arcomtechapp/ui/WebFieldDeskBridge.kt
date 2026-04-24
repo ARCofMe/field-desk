@@ -5,6 +5,8 @@ import android.content.Intent
 import android.net.Uri
 import android.webkit.JavascriptInterface
 import com.example.arcomtechapp.storage.Storage
+import org.json.JSONArray
+import org.json.JSONObject
 
 class WebFieldDeskBridge(
     private val context: Context,
@@ -14,106 +16,134 @@ class WebFieldDeskBridge(
     @JavascriptInterface
     fun getHostConfig(): String {
         val snapshot = storage.getSnapshot()
-        return jsonObject(
-            "apiBase" to (snapshot.opsHubBaseUrl ?: ""),
-            "apiToken" to (snapshot.opsHubApiKey ?: ""),
-            "technicianSubject" to subjectFor(snapshot.technicianId),
-            "themeMode" to when (snapshot.themeMode) {
+        return JSONObject()
+            .put("apiBase", snapshot.opsHubBaseUrl ?: "")
+            .put("apiToken", snapshot.opsHubApiKey ?: "")
+            .put("technicianSubject", subjectFor(snapshot.technicianId))
+            .put("themeMode", when (snapshot.themeMode) {
                 1 -> "light"
                 2 -> "dark"
                 else -> "dark"
-            },
-            "preferWebFieldDesk" to snapshot.preferWebFieldDesk,
-            "fieldDeskWebUrl" to (snapshot.fieldDeskWebUrl ?: "")
-        )
+            })
+            .put("preferWebFieldDesk", snapshot.preferWebFieldDesk)
+            .put("fieldDeskWebUrl", snapshot.fieldDeskWebUrl ?: "")
+            .put("opsHubUrl", snapshot.opsHubUrl ?: snapshot.opsHubBaseUrl ?: "")
+            .put("routeDeskUrl", snapshot.routeDeskUrl ?: "")
+            .put("partsDeskUrl", snapshot.partsDeskUrl ?: "")
+            .toString()
     }
 
     @JavascriptInterface
     fun getOfflineQueueState(): String {
         val items = storage.getOfflineActions()
-        return jsonObject(
-            "count" to items.size,
-            "available" to true,
-            "items" to items.joinToString(prefix = "[", postfix = "]") { item ->
-                jsonObject(
-                    "id" to item.id,
-                    "actionType" to item.actionType,
-                    "createdAtEpochMillis" to item.createdAtEpochMillis,
-                    "payload" to item.payload
-                )
-            }
-        )
+        val payload = JSONArray()
+        items.forEach { item ->
+            payload.put(
+                JSONObject()
+                    .put("id", item.id)
+                    .put("actionType", item.actionType)
+                    .put("createdAtEpochMillis", item.createdAtEpochMillis)
+                    .put("payload", item.payload)
+            )
+        }
+        return JSONObject()
+            .put("count", items.size)
+            .put("available", true)
+            .put("items", payload)
+            .toString()
     }
 
     @JavascriptInterface
     fun enqueueOfflineAction(actionType: String, payload: String): String {
         val record = storage.enqueueOfflineAction(actionType.trim().ifBlank { "unknown" }, payload)
-        return jsonObject(
-            "success" to true,
-            "id" to record.id,
-            "message" to "Queued ${record.actionType} for later sync."
-        )
+        return JSONObject()
+            .put("success", true)
+            .put("id", record.id)
+            .put("message", "Queued ${record.actionType} for later sync.")
+            .toString()
+    }
+
+    @JavascriptInterface
+    fun removeOfflineAction(id: String): String {
+        val removed = storage.removeOfflineAction(id.trim())
+        return JSONObject()
+            .put("success", removed)
+            .put("message", if (removed) "Removed queued action." else "Queued action was not found.")
+            .toString()
+    }
+
+    @JavascriptInterface
+    fun clearOfflineActions(): String {
+        storage.clearOfflineActions()
+        return JSONObject()
+            .put("success", true)
+            .put("message", "Cleared offline action queue.")
+            .toString()
     }
 
     @JavascriptInterface
     fun capturePhoto(label: String, srId: String): String {
+        val cleanLabel = label.trim().ifBlank { "unlabeled" }
+        val cleanSrId = srId.trim()
+        storage.recordJobPhotoCapture(cleanSrId, cleanLabel)
         storage.enqueueOfflineAction(
             "capture_photo_request",
-            "label=${label.trim()}&srId=${srId.trim()}"
+            "label=$cleanLabel&srId=$cleanSrId"
         )
-        return jsonObject(
-            "success" to false,
-            "bridgeStatus" to "scaffolded",
-            "message" to "Native photo capture bridge scaffold is in place, but camera capture is not wired yet."
-        )
+        return JSONObject()
+            .put("success", false)
+            .put("bridgeStatus", "scaffolded")
+            .put("message", "Native photo capture bridge scaffold is in place, but camera capture is not wired yet.")
+            .toString()
     }
 
     @JavascriptInterface
-    fun requestPushRegistration(): String {
-        return jsonObject(
-            "success" to false,
-            "bridgeStatus" to "scaffolded",
-            "message" to "Push registration bridge scaffold is in place, but provider wiring is not configured yet."
-        )
-    }
+    fun requestPushRegistration(): String =
+        JSONObject()
+            .put("success", false)
+            .put("bridgeStatus", "scaffolded")
+            .put("message", "Push registration bridge scaffold is in place, but provider wiring is not configured yet.")
+            .toString()
 
     @JavascriptInterface
-    fun getDeviceLocation(): String {
-        return jsonObject(
-            "success" to false,
-            "bridgeStatus" to "scaffolded",
-            "message" to "Location bridge scaffold is in place, but live location permission and capture are not wired yet."
-        )
-    }
+    fun getDeviceLocation(): String =
+        JSONObject()
+            .put("success", false)
+            .put("bridgeStatus", "scaffolded")
+            .put("message", "Location bridge scaffold is in place, but live location permission and capture are not wired yet.")
+            .toString()
 
     @JavascriptInterface
     fun openExternalNavigation(address: String): String {
         val cleaned = address.trim()
         if (cleaned.isBlank()) {
-            return jsonObject("success" to false, "message" to "An address is required.")
+            return JSONObject().put("success", false).put("message", "An address is required.").toString()
         }
         val uri = Uri.parse("google.navigation:q=${Uri.encode(cleaned)}")
-        return runCatching {
+        return launchIntent(uri, "Opened external navigation.", "Could not open external navigation.")
+    }
+
+    @JavascriptInterface
+    fun openExternalUrl(url: String): String {
+        val cleaned = url.trim()
+        val parsed = runCatching { Uri.parse(cleaned) }.getOrNull()
+        if (cleaned.isBlank() || parsed?.scheme !in setOf("http", "https")) {
+            return JSONObject().put("success", false).put("message", "A valid http/https URL is required.").toString()
+        }
+        return launchIntent(parsed ?: return JSONObject().put("success", false).put("message", "A valid http/https URL is required.").toString(), "Opened external workspace.", "Could not open external workspace.")
+    }
+
+    private fun launchIntent(uri: Uri, successMessage: String, failureMessage: String): String =
+        runCatching {
             val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
-            jsonObject("success" to true, "message" to "Opened external navigation.")
+            JSONObject().put("success", true).put("message", successMessage).toString()
         }.getOrElse {
-            jsonObject("success" to false, "message" to "Could not open external navigation.")
+            JSONObject().put("success", false).put("message", failureMessage).toString()
         }
-    }
 
     private fun subjectFor(rawId: String?): String =
         rawId?.trim()?.takeIf { it.isNotBlank() }?.let { if (it.startsWith("bf:")) it else "bf:$it" } ?: ""
-
-    private fun jsonObject(vararg pairs: Pair<String, Any?>): String =
-        pairs.joinToString(prefix = "{", postfix = "}") { (key, value) ->
-            val encodedValue = when (value) {
-                null -> "null"
-                is Boolean, is Number -> value.toString()
-                else -> "\"${value.toString().replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")}\""
-            }
-            "\"$key\":$encodedValue"
-        }
 }
